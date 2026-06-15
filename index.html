@@ -1,601 +1,564 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0d14" />
-  <title>NovaCut Mobile V3 - Editor Video HTML cu Motion Smoothing reparat</title>
-  <style>
-    :root{
-      --bg:#070a12;--panel:#10151f;--panel2:#151b28;--soft:#1e2635;--line:#2a3448;
-      --text:#f7f7ff;--muted:#9ca8bd;--accent:#8a5cff;--accent2:#37d5ff;--ok:#38e08f;--warn:#ffd166;--danger:#ff607d;
-      --radius:22px;--shadow:0 24px 80px rgba(0,0,0,.45)
-    }
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{margin:0;background:radial-gradient(circle at 20% 0%,#17223b 0,#080b13 48%,#05070c 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100%;overflow-x:hidden}
-    button,input,select,textarea{font:inherit;color:inherit}
-    button{border:0;cursor:pointer;background:transparent}
-    .app{min-height:100vh;max-width:520px;margin:0 auto;padding:env(safe-area-inset-top) 14px calc(24px + env(safe-area-inset-bottom))}
-    .topbar{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,rgba(7,10,18,.98),rgba(7,10,18,.74));backdrop-filter:blur(16px);padding:12px 0 10px;display:flex;align-items:center;gap:10px}
-    .brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-    .logo{width:42px;height:42px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;box-shadow:0 12px 30px rgba(138,92,255,.35);font-weight:900}.brand h1{font-size:18px;margin:0;letter-spacing:.2px}.brand p{font-size:11px;margin:1px 0 0;color:var(--muted)}
-    .pill{padding:10px 13px;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;font-size:12px}.primary{background:linear-gradient(135deg,var(--accent),#b34cff);border:0;box-shadow:0 12px 30px rgba(138,92,255,.32);font-weight:800}.danger{background:linear-gradient(135deg,#ff477e,#ff785a)}.success{background:linear-gradient(135deg,#19c37d,#4de3a0);color:#04130d}.ghost{background:rgba(255,255,255,.06);border:1px solid var(--line)}
-    .hero{border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035));border-radius:28px;padding:14px;box-shadow:var(--shadow);overflow:hidden}
-    .uploadBox{display:grid;gap:12px;padding:18px;border:1px dashed rgba(138,92,255,.75);border-radius:24px;background:linear-gradient(135deg,rgba(138,92,255,.12),rgba(55,213,255,.08));text-align:center}.uploadIcon{font-size:34px}.uploadBox h2{margin:0;font-size:20px}.uploadBox p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}.bigUpload{width:100%;padding:15px 16px;border-radius:18px;font-weight:900;background:linear-gradient(135deg,var(--accent),#a64dff);box-shadow:0 16px 35px rgba(138,92,255,.3)}
-    .previewShell{display:none;position:relative;border-radius:24px;overflow:hidden;background:#000;aspect-ratio:9/16;border:1px solid rgba(255,255,255,.08)}
-    video#preview{width:100%;height:100%;object-fit:contain;background:#000;display:block}.overlayLayer{pointer-events:none;position:absolute;inset:0}.textOverlay{position:absolute;left:7%;right:7%;bottom:18%;text-align:center;font-weight:900;font-size:clamp(18px,6vw,34px);text-shadow:0 3px 18px rgba(0,0,0,.9);line-height:1.1;white-space:pre-wrap}.stickerOverlay{position:absolute;right:12%;bottom:28%;font-size:46px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.55))}.imageOverlay{position:absolute;right:18px;top:18px;max-width:38%;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.45);display:none}.videoHUD{position:absolute;left:10px;top:10px;right:10px;display:flex;justify-content:space-between;gap:8px;z-index:3}.hudChip{font-size:11px;padding:7px 9px;background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.13);border-radius:999px;backdrop-filter:blur(12px)}
-    .transport{display:none;gap:10px;align-items:center;padding:12px 2px 2px}.round{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid var(--line);display:grid;place-items:center}.time{font-size:12px;color:var(--muted);min-width:86px;text-align:right}.scrub{appearance:none;width:100%;height:7px;border-radius:999px;background:linear-gradient(90deg,var(--accent) var(--p,0%),rgba(255,255,255,.12) var(--p,0%));outline:0}.scrub::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--accent);box-shadow:0 0 0 6px rgba(138,92,255,.18)}
-    .timeline{display:none;margin-top:12px;background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:20px;padding:10px;position:relative;overflow:hidden}.tracks{display:grid;gap:8px}.track{height:42px;border-radius:13px;background:rgba(255,255,255,.06);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06)}.track.videoTrack{height:54px;display:flex}.thumb{min-width:72px;flex:1;background:#202838;border-right:1px solid rgba(255,255,255,.06);object-fit:cover}.clipLabel{position:absolute;left:9px;top:8px;font-size:11px;font-weight:800;background:rgba(0,0,0,.4);padding:4px 7px;border-radius:999px}.track.text{background:linear-gradient(90deg,rgba(138,92,255,.75),rgba(138,92,255,.16))}.track.sticker{background:linear-gradient(90deg,rgba(255,209,102,.72),rgba(255,209,102,.12))}.track.audio{background:linear-gradient(90deg,rgba(25,195,125,.62),rgba(25,195,125,.12))}.playhead{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:0;box-shadow:0 0 18px rgba(255,255,255,.9);z-index:2}.timeMarks{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-bottom:6px}.wave{position:absolute;inset:8px 8px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.25) 0 2px, transparent 2px 8px);mask-image:linear-gradient(to top,transparent 0,#000 45%,#000 55%,transparent 100%);opacity:.65}
-    .tabs{position:sticky;top:66px;z-index:30;margin:12px -14px 0;padding:8px 14px;display:flex;gap:8px;overflow:auto;background:linear-gradient(180deg,rgba(7,10,18,.95),rgba(7,10,18,.72));backdrop-filter:blur(12px)}.tab{white-space:nowrap;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:12px;color:var(--muted)}.tab.active{color:#fff;background:linear-gradient(135deg,rgba(138,92,255,.9),rgba(55,213,255,.45));border-color:rgba(255,255,255,.15)}
-    .panel{display:none;margin-top:12px;background:rgba(16,21,31,.78);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:14px;box-shadow:0 16px 50px rgba(0,0,0,.22)}.panel.active{display:block}.sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.sectionTitle h3{margin:0;font-size:16px}.sectionTitle span{font-size:11px;color:var(--muted)}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.tool{border:1px solid var(--line);background:rgba(255,255,255,.055);border-radius:17px;min-height:74px;padding:9px 7px;display:grid;place-items:center;text-align:center;gap:6px;color:var(--muted);font-size:11px}.tool b{font-size:20px;color:#fff}.tool.active{border-color:rgba(138,92,255,.9);background:rgba(138,92,255,.16);color:#fff}.tool.wide{grid-column:span 2}.tool.full{grid-column:1/-1;min-height:auto;display:flex;justify-content:center;padding:12px}.row{display:flex;gap:10px;align-items:center}.row.wrap{flex-wrap:wrap}.field{width:100%;display:grid;gap:7px;margin:10px 0}.field label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}.field input[type="range"]{width:100%;accent-color:var(--accent)}.field input[type="text"],.field input[type="number"],.field select,.field textarea{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:14px;padding:12px;outline:0}.field textarea{min-height:72px;resize:vertical}.chips{display:flex;gap:8px;overflow:auto;padding-bottom:3px}.chip{white-space:nowrap;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:12px;color:var(--muted)}.chip.active{background:rgba(138,92,255,.18);border-color:var(--accent);color:#fff}.presetThumb{min-width:88px;height:72px;border-radius:17px;border:1px solid var(--line);background:linear-gradient(135deg,#343a52,#111827);display:grid;place-items:end center;padding:8px;font-size:11px;color:#fff;overflow:hidden}.presetThumb.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(138,92,255,.13)}
-    .switchLine{display:flex;align-items:center;justify-content:space-between;gap:14px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:18px;padding:12px;margin:8px 0}.switchLine small{color:var(--muted);display:block;margin-top:3px;line-height:1.35}.switch{position:relative;width:50px;height:28px;flex:none}.switch input{display:none}.knob{position:absolute;inset:0;background:#323a4b;border-radius:999px;transition:.2s}.knob:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s}.switch input:checked+.knob{background:linear-gradient(135deg,var(--accent),var(--accent2))}.switch input:checked+.knob:before{transform:translateX(22px)}
-    .log{height:92px;overflow:auto;background:#05070d;border:1px solid var(--line);border-radius:16px;padding:10px;font:11px/1.42 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#b8c4db;white-space:pre-wrap}.progressBar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid var(--line)}.progressBar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:.2s}.downloadCard{display:none;border-radius:20px;border:1px solid rgba(25,195,125,.4);background:rgba(25,195,125,.08);padding:12px;margin-top:12px}.downloadCard a{display:block;text-align:center;text-decoration:none;color:#04130d;background:linear-gradient(135deg,#52efa8,#9cffcb);padding:12px;border-radius:16px;font-weight:900}.note{font-size:12px;color:var(--muted);line-height:1.45}.kbd{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(255,255,255,.08);padding:2px 6px;border-radius:7px;color:#fff}.hidden{display:none!important}
-    .bottomActions{position:sticky;bottom:0;z-index:60;margin:18px -14px -24px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(7,10,18,.98),rgba(7,10,18,.74));backdrop-filter:blur(18px);display:grid;grid-template-columns:1fr 1fr;gap:10px}.bottomActions button{padding:14px;border-radius:18px;font-weight:900}.warnBox{border:1px solid rgba(255,209,102,.28);background:rgba(255,209,102,.08);padding:11px;border-radius:16px;color:#ffe4a0;font-size:12px;line-height:1.45}
-    @media (min-width:760px){.app{max-width:1120px}.layout{display:grid;grid-template-columns:410px 1fr;gap:18px;align-items:start}.tabs{top:70px}.grid{grid-template-columns:repeat(5,1fr)}.hero{position:sticky;top:82px}.previewShell{aspect-ratio:9/16}.bottomActions{max-width:1120px;margin-left:auto;margin-right:auto;border-radius:28px 28px 0 0}}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CMN Magic Eraser Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-dark: #0a0a0c;
+            --panel-bg: rgba(20, 20, 25, 0.85);
+            --accent: #ff2a5f; /* Culoare specifică uneltelor de 'ștergere' */
+            --accent-hover: #ff4d79;
+            --text-main: #ffffff;
+            --text-muted: #888899;
+            --border: rgba(255, 255, 255, 0.1);
+            --glow: 0 0 20px rgba(255, 42, 95, 0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: #000;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a24 0%, #0a0a0c 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        /* App Container */
+        #app-root {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Header */
+        header {
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 60px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            z-index: 50;
+            pointer-events: none; /* Lăsăm click-urile să treacă prin fundal */
+        }
+        header > * { pointer-events: auto; } /* Reactivăm butoanele */
+
+        .logo { font-weight: 800; font-size: 1.2rem; letter-spacing: 1px; }
+        .logo span { color: var(--accent); }
+
+        .top-tools { display: flex; gap: 15px; align-items: center; }
+        
+        .btn-icon {
+            background: rgba(255,255,255,0.1); border: 1px solid var(--border);
+            color: white; width: 36px; height: 36px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; backdrop-filter: blur(10px); transition: 0.2s;
+        }
+        .btn-icon:hover { background: rgba(255,255,255,0.2); }
+        .btn-icon.disabled { opacity: 0.3; pointer-events: none; }
+
+        .btn-export {
+            background: var(--text-main); color: #000; border: none;
+            padding: 8px 18px; border-radius: 20px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-export:hover { background: var(--accent); color: white; box-shadow: var(--glow); }
+
+        /* Workspace & Canvas */
+        .workspace {
+            flex: 1;
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        canvas {
+            position: absolute;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            transform-origin: center center;
+        }
+
+        #displayCanvas { z-index: 10; }
+        /* Masca o afișăm semi-transparentă roșie */
+        #maskCanvas { z-index: 20; opacity: 0.6; mix-blend-mode: multiply; pointer-events: none; }
+
+        /* Custom Cursor for Brush */
+        #brushCursor {
+            position: fixed; pointer-events: none; z-index: 100;
+            border: 2px solid rgba(255, 255, 255, 0.8); background: rgba(255, 42, 95, 0.3);
+            border-radius: 50%; transform: translate(-50%, -50%); display: none;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        /* Toolbar Bottom */
+        .bottom-toolbar {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--panel-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 24px;
+            padding: 15px 25px; display: flex; flex-direction: column; gap: 15px;
+            z-index: 50; width: 90%; max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .tool-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+        
+        .slider-container { flex: 1; display: flex; align-items: center; gap: 10px; }
+        .slider-container span { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+        
+        input[type=range] {
+            flex: 1; -webkit-appearance: none; background: transparent; height: 20px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
+            background: var(--text-main); margin-top: -7px; cursor: pointer; border: 2px solid var(--panel-bg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .btn-magic {
+            background: var(--accent); color: white; border: none;
+            padding: 12px 20px; border-radius: 12px; font-weight: 800; font-size: 1rem;
+            cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;
+            flex: 1; justify-content: center; box-shadow: var(--glow);
+        }
+        .btn-magic:active { transform: scale(0.95); }
+        .btn-magic.disabled { background: #333; color: #666; box-shadow: none; pointer-events: none; }
+
+        .btn-clear {
+            background: transparent; border: 1px solid var(--border); color: var(--text-main);
+            padding: 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Upload Splash */
+        .upload-overlay {
+            position: absolute; inset: 0; background: var(--bg-dark); z-index: 200;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .upload-box {
+            border: 2px dashed var(--accent); padding: 40px; border-radius: 20px; text-align: center;
+            cursor: pointer; background: rgba(255, 42, 95, 0.05); transition: 0.3s;
+        }
+        .upload-box:hover { background: rgba(255, 42, 95, 0.1); box-shadow: var(--glow); }
+        .upload-box svg { width: 50px; height: 50px; fill: var(--accent); margin-bottom: 15px; }
+        .upload-box h2 { font-size: 1.5rem; margin-bottom: 5px; }
+        .upload-box p { color: var(--text-muted); font-size: 0.9rem; }
+        #fileInput { display: none; }
+
+        /* Loader */
+        .loader-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: 300;
+            display: none; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+    </style>
 </head>
 <body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand"><div class="logo">✂</div><div><h1>NovaCut Mobile V3</h1><p>Editor video HTML - procesare locală în browser</p></div></div>
-      <button class="pill ghost" id="resetBtn">Reset</button>
-      <button class="pill primary" id="exportTopBtn">Export</button>
-    </header>
 
-    <main class="layout">
-      <section class="hero">
-        <div class="uploadBox" id="uploadBox">
-          <div class="uploadIcon">🎬</div>
-          <h2>Încarcă un video real</h2>
-          <p>Alege un fișier video din telefon. Aplicația îl previzualizează și îl procesează local cu FFmpeg WASM.</p>
-          <button class="bigUpload" id="uploadBtn">📲 Încarcă video</button>
-          <input id="videoInput" type="file" accept="video/*" class="hidden" />
+    <div id="app-root">
+        
+        <!-- Ecran Încărcare -->
+        <div class="upload-overlay" id="uploadScreen">
+            <label class="upload-box" for="fileInput">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z"/></svg>
+                <h2>Încarcă Fotografia</h2>
+                <p>Selectează imaginea pentru retușare</p>
+            </label>
+            <input type="file" id="fileInput" accept="image/jpeg, image/png, image/webp">
         </div>
 
-        <div class="previewShell" id="previewShell">
-          <video id="preview" playsinline controls></video>
-          <div class="videoHUD"><span class="hudChip" id="resChip">Niciun video</span><span class="hudChip" id="speedChip">1x</span></div>
-          <div class="overlayLayer"><div class="textOverlay" id="textOverlay"></div><div class="stickerOverlay" id="stickerOverlay"></div><img class="imageOverlay" id="imageOverlay" alt="overlay" /></div>
+        <!-- Ecran Procesare (AI Simulation) -->
+        <div class="loader-overlay" id="loaderScreen">
+            <div class="spinner"></div>
+            <h3 style="margin-bottom: 5px;">Se elimină obiectele...</h3>
+            <p style="color: var(--text-muted); font-size: 12px;">Se calculează pixelii adiacenți (Content-Aware)</p>
         </div>
 
-        <div class="transport" id="transport">
-          <button class="round" id="playBtn">▶</button>
-          <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" />
-          <span class="time" id="timeLabel">00:00 / 00:00</span>
+        <!-- Header -->
+        <header>
+            <div class="logo">CMN <span>Retouch</span></div>
+            <div class="top-tools">
+                <div class="btn-icon disabled" id="btnUndo" title="Undo (Înapoi)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                </div>
+                <button class="btn-export" id="btnExport">Salvează</button>
+            </div>
+        </header>
+
+        <!-- Zona de Editare (Canvas-uri suprapuse) -->
+        <div class="workspace" id="workspace">
+            <!-- Canvas-ul cu imaginea originală/modificată -->
+            <canvas id="displayCanvas"></canvas>
+            <!-- Canvas-ul transparent pe care desenăm masca roșie -->
+            <canvas id="maskCanvas"></canvas>
+            
+            <div id="brushCursor"></div>
         </div>
 
-        <div class="timeline" id="timeline">
-          <div class="timeMarks"><span>00:00</span><span id="mark25">--</span><span id="mark50">--</span><span id="mark75">--</span><span id="mark100">--</span></div>
-          <div class="playhead" id="playhead"></div>
-          <div class="tracks">
-            <div class="track videoTrack" id="videoTrack"><span class="clipLabel">Video</span></div>
-            <div class="track text"><span class="clipLabel">Text / captions</span></div>
-            <div class="track sticker"><span class="clipLabel">Sticker / overlay</span></div>
-            <div class="track audio"><span class="clipLabel">Audio</span><div class="wave"></div></div>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <nav class="tabs" id="tabs">
-          <button class="tab active" data-tab="edit">Edit</button><button class="tab" data-tab="speed">Speed</button><button class="tab" data-tab="visual">Visual</button><button class="tab" data-tab="overlay">Overlay</button><button class="tab" data-tab="audio">Audio</button><button class="tab" data-tab="tools">Tools</button><button class="tab" data-tab="export">Export</button>
-        </nav>
-
-        <div class="panel active" id="tab-edit">
-          <div class="sectionTitle"><h3>Timeline Editing</h3><span>trim / split / transitions</span></div>
-          <div class="grid">
-            <button class="tool" id="setStartBtn"><b>⟦</b>Start trim</button>
-            <button class="tool" id="setEndBtn"><b>⟧</b>End trim</button>
-            <button class="tool" id="clearTrimBtn"><b>⌫</b>Clear trim</button>
-            <button class="tool" id="splitBtn"><b>✂</b>Split aici</button>
-          </div>
-          <div class="row"><div class="field"><label>Trim start <span id="trimStartLabel">0.00s</span></label><input id="trimStart" type="number" min="0" step="0.1" value="0"></div><div class="field"><label>Trim end <span id="trimEndLabel">auto</span></label><input id="trimEnd" type="number" min="0" step="0.1" value="0"></div></div>
-          <div class="switchLine"><div><b>Transition fade in/out</b><small>Adaugă fade real la început și final în export.</small></div><label class="switch"><input id="fadeToggle" type="checkbox"><span class="knob"></span></label></div>
-          <p class="note">Butonul „Split aici” setează automat finalul segmentului la poziția curentă, pentru export rapid al unei bucăți.</p>
+        <!-- Toolbar Jos -->
+        <div class="bottom-toolbar">
+            <div class="tool-row">
+                <div class="slider-container">
+                    <span>MĂRIME PENSULĂ</span>
+                    <input type="range" id="brushSize" min="5" max="100" value="30">
+                </div>
+            </div>
+            <div class="tool-row">
+                <button class="btn-clear" id="btnClearMask" title="Șterge Selecția">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <button class="btn-magic disabled" id="btnMagicErase">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.81 14.12l7.06 7.06c.2.2.51.2.71 0l7.06-7.06c.2-.2.2-.51 0-.71L10.59 6.34c-.2-.2-.51-.2-.71 0L2.81 13.41c-.2.2-.2.52 0 .71zM11.5 8.16l4.66 4.66-4.66 4.66-4.66-4.66 4.66-4.66zM22 13h-4v-2h4v2zm-2-6h-2V5h2v2zm0 12h-2v-2h2v2zM6 5H4V3h2v2zm-2 6H2V9h2v2z"/></svg>
+                    ȘTERGE OBIECT
+                </button>
+            </div>
         </div>
 
-        <div class="panel" id="tab-speed">
-          <div class="sectionTitle"><h3>Speed Control</h3><span>slow motion fluid</span></div>
-          <div class="field"><label>Viteză video <span id="speedValue">1x</span></label><input id="speedRange" type="range" min="0" max="5" step="1" value="3"><div class="chips" id="speedChips"><button class="chip" data-speed="0.1">0.1x</button><button class="chip" data-speed="0.25">0.25x</button><button class="chip" data-speed="0.5">0.5x</button><button class="chip active" data-speed="1">1x</button><button class="chip" data-speed="2">2x</button><button class="chip" data-speed="4">4x</button></div></div>
-          <div class="switchLine"><div><b>Motion Smoothing real</b><small>La export folosește FFmpeg <span class="kbd">minterpolate</span> pentru cadre intermediare. E mult mai lent, dar fluid.</small></div><label class="switch"><input id="smoothToggle" type="checkbox" checked><span class="knob"></span></label></div>
-          <div class="field"><label>FPS pentru netezire/export <span id="fpsValue">60 fps</span></label><input id="fpsRange" type="range" min="24" max="120" step="1" value="60"></div>
-          <div class="warnBox" id="smoothMathBox">Smooth real: pentru 0.25x la 60fps, motorul creează până la 240fps înainte de încetinire, apoi exportă la 60fps.</div>
-          <button class="tool full primary" id="smoothPreviewBtn">⚡ Generează preview smooth real</button>
-          <div class="field"><label>Curve speed preset</label><select id="curvePreset"><option value="constant">Constant</option><option value="hero">Hero ramp</option><option value="montage">Montage pulse</option><option value="bullet">Bullet time</option><option value="jump">Jump cut feel</option></select></div>
-          <div class="grid"><button class="tool" id="applyPreviewSpeed"><b>▶</b>Preview speed</button><button class="tool" id="beforeAfterBtn"><b>↔</b>Before/After</button></div>
-        </div>
-
-        <div class="panel" id="tab-visual">
-          <div class="sectionTitle"><h3>Visual</h3><span>filters / adjust / vignette</span></div>
-          <div class="chips" id="filterChips"><button class="presetThumb active" data-filter="none">Original</button><button class="presetThumb" data-filter="cinematic">Cinematic</button><button class="presetThumb" data-filter="urban">Urban</button><button class="presetThumb" data-filter="aesthetic">Aesthetic</button><button class="presetThumb" data-filter="moody">Moody</button><button class="presetThumb" data-filter="vibrant">Vibrant</button><button class="presetThumb" data-filter="bw">B&W</button></div>
-          <div class="field"><label>Brightness <span id="brightnessVal">0</span></label><input id="brightness" type="range" min="-0.5" max="0.5" step="0.01" value="0"></div>
-          <div class="field"><label>Contrast <span id="contrastVal">1</span></label><input id="contrast" type="range" min="0.4" max="2.2" step="0.01" value="1"></div>
-          <div class="field"><label>Saturation <span id="saturationVal">1</span></label><input id="saturation" type="range" min="0" max="3" step="0.01" value="1"></div>
-          <div class="field"><label>Hue <span id="hueVal">0°</span></label><input id="hue" type="range" min="-45" max="45" step="1" value="0"></div>
-          <div class="switchLine"><div><b>Vignette</b><small>Aplică margini cinematice în export.</small></div><label class="switch"><input id="vignetteToggle" type="checkbox"><span class="knob"></span></label></div>
-        </div>
-
-        <div class="panel" id="tab-overlay">
-          <div class="sectionTitle"><h3>Overlay</h3><span>text / sticker / image</span></div>
-          <div class="field"><label>Text overlay</label><textarea id="overlayTextInput" placeholder="Scrie textul care apare pe video..."></textarea></div>
-          <div class="row"><div class="field"><label>Culoare text</label><input id="textColor" type="color" value="#ffffff"></div><div class="field"><label>Dimensiune text</label><input id="textSize" type="range" min="24" max="96" value="54"></div></div>
-          <div class="field"><label>Sticker / Emoji</label><input id="stickerInput" type="text" maxlength="8" placeholder="🔥 😎 ✨"></div>
-          <div class="grid"><button class="tool" data-sticker="🔥"><b>🔥</b>Fire</button><button class="tool" data-sticker="😎"><b>😎</b>Cool</button><button class="tool" data-sticker="✨"><b>✨</b>Spark</button><button class="tool" data-sticker="💜"><b>💜</b>Heart</button></div>
-          <div class="field"><label>Imagine overlay reală</label><input id="imageOverlayInput" type="file" accept="image/*"></div>
-          <div class="switchLine"><div><b>Blend overlay</b><small>În preview este vizual; la export imaginea overlay este compusă peste video.</small></div><label class="switch"><input id="blendToggle" type="checkbox"><span class="knob"></span></label></div>
-        </div>
-
-        <div class="panel" id="tab-audio">
-          <div class="sectionTitle"><h3>Audio</h3><span>extract / detach / voiceover</span></div>
-          <div class="grid">
-            <button class="tool wide" id="extractAudioBtn"><b>🎧</b>Extrage sunet .m4a</button>
-            <button class="tool wide" id="detachBtn"><b>🔇</b>Export fără sunet</button>
-            <button class="tool" id="recordVoiceBtn"><b>🎙</b>Voiceover</button>
-            <button class="tool" id="stopVoiceBtn"><b>■</b>Stop rec</button>
-          </div>
-          <div class="field"><label>Volum audio original <span id="volumeVal">100%</span></label><input id="volumeRange" type="range" min="0" max="2" step="0.01" value="1"></div>
-          <div class="switchLine"><div><b>Mute original</b><small>Elimină complet sunetul original la export.</small></div><label class="switch"><input id="muteToggle" type="checkbox"><span class="knob"></span></label></div>
-          <div class="switchLine"><div><b>Folosește voiceover ca audio final</b><small>Dacă înregistrezi, exportul poate folosi microfonul ca soundtrack.</small></div><label class="switch"><input id="voiceAsAudioToggle" type="checkbox" checked><span class="knob"></span></label></div>
-          <audio id="voicePreview" controls class="hidden" style="width:100%;margin-top:10px"></audio>
-          <div class="downloadCard" id="audioDownload"><a id="audioDownloadLink" download="audio-extras.m4a">Descarcă audio extras</a></div>
-          <p class="note">Microfonul merge doar pe HTTPS sau localhost. Pe unele browsere mobile, deschiderea directă din fișier poate bloca voiceover.</p>
-        </div>
-
-        <div class="panel" id="tab-tools">
-          <div class="sectionTitle"><h3>Tools</h3><span>reverse / freeze / stabilize / crop</span></div>
-          <div class="grid">
-            <button class="tool toggleTool" data-toggle="reverse"><b>↩</b>Reverse</button>
-            <button class="tool toggleTool" data-toggle="freezeEnd"><b>⏸</b>Freeze final</button>
-            <button class="tool toggleTool" data-toggle="stabilize"><b>▣</b>Stabilize</button>
-            <button class="tool toggleTool" data-toggle="motionBlur"><b>〰</b>Motion blur</button>
-            <button class="tool toggleTool" data-toggle="smartFps"><b>⚡</b>Smart FPS</button>
-          </div>
-          <div class="field"><label>Crop</label><select id="cropSelect"><option value="none">Fără crop</option><option value="square">Square 1:1</option><option value="vertical">Vertical 9:16</option><option value="wide">Wide 16:9</option></select></div>
-          <div class="field"><label>Freeze final duration <span id="freezeDurVal">2s</span></label><input id="freezeDur" type="range" min="0.5" max="5" step="0.5" value="2"></div>
-          <p class="note">Stabilizarea folosește filtrul FFmpeg <span class="kbd">deshake</span>. Pentru rezultate mari ca într-o aplicație nativă, un telefon puternic ajută mult.</p>
-        </div>
-
-        <div class="panel" id="tab-export">
-          <div class="sectionTitle"><h3>Export Settings</h3><span>MP4 local</span></div>
-          <div class="field"><label>Resolution <span id="resolutionVal">1080p</span></label><input id="resolutionRange" type="range" min="0" max="4" step="1" value="2"><div class="chips" id="resChips"><button class="chip" data-res="480">480p</button><button class="chip" data-res="720">720p</button><button class="chip active" data-res="1080">1080p</button><button class="chip" data-res="1440">2K</button><button class="chip" data-res="2160">4K</button></div></div>
-          <div class="field"><label>Quality <span id="qualityVal">High</span></label><select id="qualitySelect"><option value="low">Low - rapid</option><option value="medium">Medium</option><option value="high" selected>High</option><option value="max">Max - lent</option></select></div>
-          <div class="progressBar"><span id="progressFill"></span></div>
-          <div class="log" id="logBox">Aștept video...</div>
-          <div class="downloadCard" id="downloadCard"><a id="downloadLink" download="novacut-export.mp4">Descarcă video exportat</a></div>
-          <div class="warnBox" style="margin-top:12px">Exportul se face în telefon/browser. Netezirea slow motion generează cadre noi și poate dura mult pe clipuri mari. Pentru test rapid folosește un clip scurt, 720p.</div>
-        </div>
-      </section>
-    </main>
-
-    <div class="bottomActions">
-      <button class="ghost" id="loadFFmpegBtn">Încarcă motor FFmpeg</button>
-      <button class="primary" id="exportBtn">Export Video</button>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
-  <script>
-    const $ = (s, root=document) => root.querySelector(s);
-    const $$ = (s, root=document) => Array.from(root.querySelectorAll(s));
-    const speedValues = [0.1,0.25,0.5,1,2,4];
-    const resValues = [480,720,1080,1440,2160];
-    const state = {
-      videoFile:null, videoURL:null, imageOverlayFile:null, imageOverlayURL:null,
-      speed:1, smoothing:true, fps:60, curve:'constant', beforeAfter:false,
-      filter:'none', brightness:0, contrast:1, saturation:1, hue:0, vignette:false,
-      overlayText:'', sticker:'', textColor:'#ffffff', textSize:54, blend:false,
-      trimStart:0, trimEnd:0, fade:false, volume:1, mute:false, detach:false,
-      voiceBlob:null, voiceAsAudio:true, reverse:false, freezeEnd:false, freezeDur:2,
-      stabilize:false, motionBlur:false, smartFps:false, crop:'none', resolution:1080, quality:'high',
-      meta:{w:0,h:0,duration:0}, mediaRecorder:null, chunks:[]
-    };
-    let ffmpeg = null, ffmpegLoaded = false, lastOutputURL = null, lastAudioURL = null;
+    <script>
+        // --- Referințe DOM ---
+        const UI = {
+            fileInput: document.getElementById('fileInput'),
+            uploadScreen: document.getElementById('uploadScreen'),
+            loaderScreen: document.getElementById('loaderScreen'),
+            workspace: document.getElementById('workspace'),
+            displayCanvas: document.getElementById('displayCanvas'),
+            maskCanvas: document.getElementById('maskCanvas'),
+            brushCursor: document.getElementById('brushCursor'),
+            brushSize: document.getElementById('brushSize'),
+            btnMagicErase: document.getElementById('btnMagicErase'),
+            btnClearMask: document.getElementById('btnClearMask'),
+            btnUndo: document.getElementById('btnUndo'),
+            btnExport: document.getElementById('btnExport')
+        };
 
-    const video = $('#preview');
-    const logBox = $('#logBox');
+        const ctxDisplay = UI.displayCanvas.getContext('2d', { willReadFrequently: true });
+        const ctxMask = UI.maskCanvas.getContext('2d', { willReadFrequently: true });
 
-    function log(msg){
-      const t = new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      logBox.textContent += `\n[${t}] ${msg}`;
-      logBox.scrollTop = logBox.scrollHeight;
-    }
-    function setProgress(p){ $('#progressFill').style.width = Math.max(0,Math.min(100,p)) + '%'; }
-    function fmtTime(s){ if(!isFinite(s)) return '00:00'; s=Math.max(0,s); const m=Math.floor(s/60), sec=Math.floor(s%60); return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
-    function safeNum(n, d=0){ n = Number(n); return Number.isFinite(n) ? n : d; }
-    function escText(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-    function activateTab(name){ $$('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name)); $$('.panel').forEach(p=>p.classList.toggle('active',p.id===`tab-${name}`)); }
+        // --- State Management ---
+        const State = {
+            imageLoaded: false,
+            brushSize: 30,
+            isDrawing: false,
+            hasMask: false,
+            scale: 1, // Pentru responsivitate pe ecran
+            imageObj: new Image(),
+            history: [], // Istoric pentru Undo (Salvăm ImageData)
+            maxHistory: 5
+        };
 
-    $$('#tabs .tab').forEach(btn => btn.addEventListener('click',()=>activateTab(btn.dataset.tab)));
-    $('#uploadBtn').addEventListener('click',()=>$('#videoInput').click());
-    $('#uploadBox').addEventListener('dblclick',()=>$('#videoInput').click());
-    $('#videoInput').addEventListener('change', handleVideoUpload);
-    $('#resetBtn').addEventListener('click',()=>location.reload());
-    $('#exportBtn').addEventListener('click', exportVideo);
-    $('#exportTopBtn').addEventListener('click', exportVideo);
-    $('#loadFFmpegBtn').addEventListener('click', ensureFFmpeg);
-    $('#smoothPreviewBtn').addEventListener('click', renderSmoothPreview);
+        // --- 1. Încărcarea și Ajustarea Imaginii pe Ecran ---
+        UI.fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    async function handleVideoUpload(e){
-      const file = e.target.files && e.target.files[0];
-      if(!file) return;
-      if(state.videoURL) URL.revokeObjectURL(state.videoURL);
-      state.videoFile = file;
-      state.videoURL = URL.createObjectURL(file);
-      video.src = state.videoURL;
-      $('#uploadBox').style.display = 'none';
-      $('#previewShell').style.display = 'block';
-      $('#transport').style.display = 'flex';
-      $('#timeline').style.display = 'block';
-      logBox.textContent = 'Video încărcat: ' + file.name;
-      video.onloadedmetadata = async () => {
-        state.meta = { w: video.videoWidth, h: video.videoHeight, duration: video.duration || 0 };
-        $('#resChip').textContent = `${video.videoWidth}×${video.videoHeight}`;
-        $('#mark25').textContent = fmtTime(video.duration*.25); $('#mark50').textContent = fmtTime(video.duration*.5); $('#mark75').textContent = fmtTime(video.duration*.75); $('#mark100').textContent = fmtTime(video.duration);
-        state.trimStart = 0; state.trimEnd = 0; $('#trimStart').value = 0; $('#trimEnd').value = 0; updateTrimLabels();
-        buildTimelineThumbs();
-        log(`Metadata: ${video.videoWidth}×${video.videoHeight}, ${fmtTime(video.duration)}.`);
-      };
-    }
-
-    async function buildTimelineThumbs(){
-      const track = $('#videoTrack'); track.querySelectorAll('canvas').forEach(c=>c.remove());
-      const dur = video.duration || 0; if(!dur) return;
-      const oldTime = video.currentTime;
-      const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 90;
-      const ctx = canvas.getContext('2d');
-      for(let i=0;i<6;i++){
-        const c = document.createElement('canvas'); c.className = 'thumb'; c.width=160; c.height=90; track.appendChild(c);
-        try{
-          await seekTo(Math.min(dur-.05, dur*(i+0.5)/6));
-          const cc = c.getContext('2d'); cc.drawImage(video,0,0,160,90);
-        }catch(err){ const cc=c.getContext('2d'); cc.fillStyle='#232b3b'; cc.fillRect(0,0,160,90); cc.fillStyle='#fff'; cc.fillText('clip',60,48); }
-      }
-      await seekTo(oldTime).catch(()=>{});
-    }
-    function seekTo(t){ return new Promise((res,rej)=>{ const on=()=>{video.removeEventListener('seeked',on);res();}; video.addEventListener('seeked',on); video.currentTime=t; setTimeout(()=>{video.removeEventListener('seeked',on);res();},900); }); }
-
-    $('#playBtn').addEventListener('click',()=>{ if(video.paused){ video.play(); $('#playBtn').textContent='⏸'; } else { video.pause(); $('#playBtn').textContent='▶'; }});
-    video.addEventListener('play',()=>$('#playBtn').textContent='⏸'); video.addEventListener('pause',()=>$('#playBtn').textContent='▶');
-    video.addEventListener('timeupdate',()=>{
-      const p = video.duration ? video.currentTime/video.duration : 0; $('#scrub').value = Math.round(p*1000); $('#scrub').style.setProperty('--p',`${p*100}%`); $('#playhead').style.left = `${p*100}%`; $('#timeLabel').textContent = `${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;
-    });
-    $('#scrub').addEventListener('input',e=>{ if(video.duration) video.currentTime = video.duration * e.target.value/1000; });
-
-    function setSpeed(v){
-      state.speed = Number(v); video.playbackRate = Math.max(0.1, Math.min(4, state.speed));
-      $('#speedValue').textContent = state.speed + 'x'; $('#speedChip').textContent = state.smoothing && state.speed < 1 ? `${state.speed}x + smooth` : `${state.speed}x`;
-      $('#speedRange').value = speedValues.indexOf(state.speed); $$('#speedChips .chip').forEach(c=>c.classList.toggle('active',Number(c.dataset.speed)===state.speed));
-      updateSmoothMathBox();
-      updateCommandHint();
-    }
-    $('#speedRange').addEventListener('input',e=>setSpeed(speedValues[Number(e.target.value)]));
-    $$('#speedChips .chip').forEach(c=>c.addEventListener('click',()=>setSpeed(c.dataset.speed)));
-    $('#smoothToggle').addEventListener('change',e=>{ state.smoothing=e.target.checked; setSpeed(state.speed); updateSmoothMathBox(); });
-    $('#fpsRange').addEventListener('input',e=>{ state.fps=Number(e.target.value); $('#fpsValue').textContent=state.fps+' fps'; updateSmoothMathBox(); updateCommandHint(); });
-    $('#curvePreset').addEventListener('change',e=>{ state.curve=e.target.value; if(e.target.value==='bullet') setSpeed(.25); if(e.target.value==='hero') setSpeed(.5); if(e.target.value==='jump') setSpeed(2); });
-    $('#applyPreviewSpeed').addEventListener('click',()=>{ video.playbackRate = state.speed; video.play(); });
-    $('#beforeAfterBtn').addEventListener('click',()=>{ state.beforeAfter=!state.beforeAfter; video.style.filter = state.beforeAfter ? 'none' : previewFilter(); });
-
-    function previewFilter(){
-      const b = state.brightness*100; const c = state.contrast*100; const s = state.saturation*100; const h = state.hue;
-      let f = `brightness(${100+b}%) contrast(${c}%) saturate(${s}%) hue-rotate(${h}deg)`;
-      if(state.filter==='bw') f+=' grayscale(1)';
-      if(state.filter==='moody') f+=' contrast(115%) saturate(80%)';
-      if(state.filter==='vibrant') f+=' saturate(130%)';
-      if(state.filter==='cinematic') f+=' contrast(112%) saturate(108%)';
-      return f;
-    }
-    function updateVisual(){
-      $('#brightnessVal').textContent = state.brightness.toFixed(2); $('#contrastVal').textContent = state.contrast.toFixed(2); $('#saturationVal').textContent = state.saturation.toFixed(2); $('#hueVal').textContent = state.hue+'°';
-      video.style.filter = previewFilter(); updateCommandHint();
-    }
-    $('#brightness').addEventListener('input',e=>{state.brightness=Number(e.target.value);updateVisual();});
-    $('#contrast').addEventListener('input',e=>{state.contrast=Number(e.target.value);updateVisual();});
-    $('#saturation').addEventListener('input',e=>{state.saturation=Number(e.target.value);updateVisual();});
-    $('#hue').addEventListener('input',e=>{state.hue=Number(e.target.value);updateVisual();});
-    $('#vignetteToggle').addEventListener('change',e=>{state.vignette=e.target.checked; updateCommandHint();});
-    $$('#filterChips [data-filter]').forEach(c=>c.addEventListener('click',()=>{ state.filter=c.dataset.filter; $$('#filterChips [data-filter]').forEach(x=>x.classList.remove('active')); c.classList.add('active'); updateVisual(); }));
-
-    function updateOverlay(){
-      state.overlayText = $('#overlayTextInput').value; state.sticker = $('#stickerInput').value; state.textColor = $('#textColor').value; state.textSize = Number($('#textSize').value);
-      $('#textOverlay').innerHTML = escText(state.overlayText); $('#textOverlay').style.color=state.textColor; $('#textOverlay').style.fontSize = Math.max(18,state.textSize/2.2)+'px'; $('#stickerOverlay').textContent=state.sticker; updateCommandHint();
-    }
-    ['overlayTextInput','stickerInput','textColor','textSize'].forEach(id=>$('#'+id).addEventListener('input',updateOverlay));
-    $$('[data-sticker]').forEach(btn=>btn.addEventListener('click',()=>{ $('#stickerInput').value=btn.dataset.sticker; updateOverlay(); }));
-    $('#imageOverlayInput').addEventListener('change',e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; state.imageOverlayFile=f; if(state.imageOverlayURL) URL.revokeObjectURL(state.imageOverlayURL); state.imageOverlayURL=URL.createObjectURL(f); $('#imageOverlay').src=state.imageOverlayURL; $('#imageOverlay').style.display='block'; updateCommandHint(); });
-    $('#blendToggle').addEventListener('change',e=>{state.blend=e.target.checked; $('#imageOverlay').style.mixBlendMode=state.blend?'screen':'normal';});
-
-    $('#setStartBtn').addEventListener('click',()=>{ state.trimStart = video.currentTime||0; $('#trimStart').value=state.trimStart.toFixed(2); updateTrimLabels(); });
-    $('#setEndBtn').addEventListener('click',()=>{ state.trimEnd = video.currentTime||0; $('#trimEnd').value=state.trimEnd.toFixed(2); updateTrimLabels(); });
-    $('#splitBtn').addEventListener('click',()=>{ state.trimEnd = video.currentTime||0; $('#trimEnd').value=state.trimEnd.toFixed(2); updateTrimLabels(); activateTab('export'); });
-    $('#clearTrimBtn').addEventListener('click',()=>{ state.trimStart=0; state.trimEnd=0; $('#trimStart').value=0; $('#trimEnd').value=0; updateTrimLabels(); });
-    $('#trimStart').addEventListener('input',e=>{state.trimStart=safeNum(e.target.value);updateTrimLabels();}); $('#trimEnd').addEventListener('input',e=>{state.trimEnd=safeNum(e.target.value);updateTrimLabels();});
-    $('#fadeToggle').addEventListener('change',e=>{state.fade=e.target.checked; updateCommandHint();});
-    function updateTrimLabels(){ $('#trimStartLabel').textContent=state.trimStart.toFixed(2)+'s'; $('#trimEndLabel').textContent=state.trimEnd>0?state.trimEnd.toFixed(2)+'s':'auto'; updateCommandHint(); }
-
-    $('#volumeRange').addEventListener('input',e=>{state.volume=Number(e.target.value); $('#volumeVal').textContent=Math.round(state.volume*100)+'%';});
-    $('#muteToggle').addEventListener('change',e=>{state.mute=e.target.checked;});
-    $('#detachBtn').addEventListener('click',()=>{ state.detach=true; state.mute=true; $('#muteToggle').checked=true; activateTab('export'); log('Detach audio activ: următorul export va fi fără sunet.'); });
-    $('#voiceAsAudioToggle').addEventListener('change',e=>{state.voiceAsAudio=e.target.checked;});
-    $('#extractAudioBtn').addEventListener('click', extractAudio);
-
-    $('#recordVoiceBtn').addEventListener('click', async()=>{
-      try{
-        if(!navigator.mediaDevices?.getUserMedia) throw new Error('Microfon indisponibil în acest browser.');
-        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-        state.chunks=[]; state.mediaRecorder = new MediaRecorder(stream);
-        state.mediaRecorder.ondataavailable = e => { if(e.data.size) state.chunks.push(e.data); };
-        state.mediaRecorder.onstop = () => { state.voiceBlob = new Blob(state.chunks,{type:state.chunks[0]?.type||'audio/webm'}); const url=URL.createObjectURL(state.voiceBlob); $('#voicePreview').src=url; $('#voicePreview').classList.remove('hidden'); stream.getTracks().forEach(t=>t.stop()); log('Voiceover înregistrat.'); };
-        state.mediaRecorder.start(); log('Înregistrez voiceover...');
-      }catch(err){ log('Eroare voiceover: '+err.message); alert('Nu pot porni microfonul: '+err.message); }
-    });
-    $('#stopVoiceBtn').addEventListener('click',()=>{ if(state.mediaRecorder && state.mediaRecorder.state!=='inactive') state.mediaRecorder.stop(); });
-
-    $$('.toggleTool').forEach(btn=>btn.addEventListener('click',()=>{ const k=btn.dataset.toggle; state[k]=!state[k]; btn.classList.toggle('active',state[k]); updateCommandHint(); }));
-    $('#cropSelect').addEventListener('change',e=>{state.crop=e.target.value; updateCommandHint();});
-    $('#freezeDur').addEventListener('input',e=>{state.freezeDur=Number(e.target.value); $('#freezeDurVal').textContent=state.freezeDur+'s';});
-    $('#resolutionRange').addEventListener('input',e=>setResolution(resValues[Number(e.target.value)]));
-    $$('#resChips .chip').forEach(c=>c.addEventListener('click',()=>setResolution(Number(c.dataset.res))));
-    $('#qualitySelect').addEventListener('change',e=>{state.quality=e.target.value; $('#qualityVal').textContent=e.target.options[e.target.selectedIndex].textContent.split(' - ')[0];});
-    function setResolution(v){ state.resolution=Number(v); $('#resolutionVal').textContent = v===1440?'2K':v===2160?'4K':v+'p'; $('#resolutionRange').value=resValues.indexOf(state.resolution); $$('#resChips .chip').forEach(c=>c.classList.toggle('active',Number(c.dataset.res)===state.resolution)); updateCommandHint(); }
-
-    async function ensureFFmpeg(){
-      if(ffmpegLoaded) return ffmpeg;
-      if(!window.FFmpegWASM || !window.FFmpegUtil){ alert('Biblioteca FFmpeg nu s-a încărcat. Verifică internetul.'); throw new Error('FFmpegWASM missing'); }
-      const { FFmpeg } = FFmpegWASM; const { toBlobURL } = FFmpegUtil;
-      ffmpeg = new FFmpeg();
-      ffmpeg.on('log', ({message}) => { if(message) log(message); });
-      ffmpeg.on('progress', ({progress}) => { if(Number.isFinite(progress)) setProgress(progress*100); });
-      log('Încarc FFmpeg core (~31 MB). Prima încărcare durează...');
-      const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
-      await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
-      });
-      ffmpegLoaded = true; $('#loadFFmpegBtn').textContent = 'FFmpeg încărcat'; $('#loadFFmpegBtn').classList.add('success');
-      log('FFmpeg este gata.'); return ffmpeg;
-    }
-
-    function fileExt(file, fallback){ const n=file?.name||''; const m=n.match(/\.([a-z0-9]+)$/i); return (m?m[1]:fallback).toLowerCase(); }
-    async function writeClean(name, data){ try{ await ffmpeg.deleteFile(name); }catch(e){} await ffmpeg.writeFile(name, data); }
-    async function readOutput(name, type){ const data = await ffmpeg.readFile(name); return new Blob([data.buffer],{type}); }
-
-    function qualityCRF(){ return {low:30,medium:25,high:20,max:17}[state.quality] || 22; }
-    function atempoChain(speed){
-      let s = speed, parts=[];
-      while(s < .5){ parts.push('atempo=0.5'); s /= .5; }
-      while(s > 2){ parts.push('atempo=2'); s /= 2; }
-      parts.push('atempo='+Math.max(.5,Math.min(2,s)).toFixed(4).replace(/0+$/,'').replace(/\.$/,''));
-      return parts.join(',');
-    }
-    function cropFilter(mode){
-      if(mode==='square') return "crop='min(iw\\,ih)':'min(iw\\,ih)'";
-      if(mode==='vertical') return "crop='if(gt(iw/ih\\,9/16)\\,ih*9/16\\,iw)':'if(gt(iw/ih\\,9/16)\\,ih\\,iw*16/9)'";
-      if(mode==='wide') return "crop='if(gt(iw/ih\\,16/9)\\,ih*16/9\\,iw)':'if(gt(iw/ih\\,16/9)\\,ih\\,iw*9/16)'";
-      return '';
-    }
-    function presetFilters(){
-      const f=[];
-      if(state.filter==='cinematic') f.push('eq=contrast=1.18:saturation=1.08:brightness=-0.02','vignette');
-      if(state.filter==='urban') f.push('eq=contrast=1.05:saturation=0.82','hue=h=-5');
-      if(state.filter==='aesthetic') f.push('eq=brightness=0.04:contrast=1.08:saturation=1.2');
-      if(state.filter==='moody') f.push('eq=brightness=-0.07:contrast=1.28:saturation=0.75','vignette');
-      if(state.filter==='vibrant') f.push('eq=contrast=1.15:saturation=1.45');
-      if(state.filter==='bw') f.push('hue=s=0');
-      return f;
-    }
-    function smoothSourceFps(){
-      if(!(state.smoothing && state.speed < 1)) return state.fps;
-      // Pentru slow motion fluid: dacă exportul final este 60fps și viteza este 0.25x,
-      // sursa trebuie interpolată la 240fps înainte de setpts, altfel rezultatul rămâne sacadat.
-      return Math.max(state.fps, Math.min(300, Math.ceil(state.fps / Math.max(0.1, state.speed))));
-    }
-    function updateSmoothMathBox(){
-      const box = $('#smoothMathBox'); if(!box) return;
-      if(state.smoothing && state.speed < 1){
-        box.textContent = `Smooth real activ: ${state.speed}x la ${state.fps}fps => interpolare internă la ${smoothSourceFps()}fps înainte de încetinire, apoi export final la ${state.fps}fps.`;
-      }else if(state.speed < 1){
-        box.textContent = 'Slow motion fără smoothing: videoul va fi încetinit, dar poate părea sacadat deoarece nu sunt generate cadre intermediare.';
-      }else{
-        box.textContent = 'Motion Smoothing se aplică doar la slow motion sub 1x. Alege 0.5x, 0.25x sau 0.1x.';
-      }
-    }
-    function buildVideoFilters(smoothEngine='optical', targetResolution=state.resolution){
-      const f=[];
-      if(state.reverse) f.push('reverse');
-      const crop = cropFilter(state.crop); if(crop) f.push(crop);
-      f.push(...presetFilters());
-      if(state.brightness!==0 || state.contrast!==1 || state.saturation!==1) f.push(`eq=brightness=${state.brightness.toFixed(3)}:contrast=${state.contrast.toFixed(3)}:saturation=${state.saturation.toFixed(3)}`);
-      if(state.hue!==0) f.push(`hue=h=${state.hue}`);
-      if(state.vignette) f.push('vignette');
-      if(state.stabilize) f.push('deshake=x=0:y=0:w=iw:h=ih:rx=16:ry=16');
-      if(state.motionBlur) f.push("tmix=frames=3:weights='1 2 1'");
-
-      if(state.smoothing && state.speed < 1){
-        const preFps = smoothSourceFps();
-        if(smoothEngine === 'optical'){
-          // Calitate maximă: motion-compensated interpolation.
-          f.push(`minterpolate=fps=${preFps}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1`);
-        }else if(smoothEngine === 'linear'){
-          // Fallback mai compatibil: interpolare liniară de frame-uri.
-          f.push(`framerate=fps=${preFps}:interp_start=0:interp_end=255:scene=100`);
-        }else if(smoothEngine === 'blend'){
-          // Fallback universal: creează frame-rate mare și estompează tranziția dintre cadre.
-          f.push(`fps=${preFps}`);
-          f.push('tblend=all_mode=average');
-        }
-        f.push(`setpts=${(1/state.speed).toFixed(5)}*PTS`);
-        f.push(`fps=${state.fps}`);
-      }else{
-        if(state.speed !== 1) f.push(`setpts=${(1/state.speed).toFixed(5)}*PTS`);
-        if(state.smartFps || state.fps !== 60) f.push(`fps=${state.fps}`);
-      }
-
-      if(state.fade) f.push('fade=t=in:st=0:d=0.35');
-      if(state.freezeEnd) f.push(`tpad=stop_mode=clone:stop_duration=${state.freezeDur}`);
-      f.push(`scale=-2:${targetResolution}`);
-      f.push('format=yuv420p');
-      return f.join(',');
-    }
-
-    async function makeOverlayPng(){
-      const w = state.meta.w || 1080, h = state.meta.h || 1920;
-      const canvas = document.createElement('canvas'); canvas.width=w; canvas.height=h; const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,w,h);
-      if(state.overlayText.trim()){
-        const size = Math.round(Math.max(24, Math.min(120, state.textSize/54 * h * 0.05)));
-        ctx.font = `900 ${size}px Arial, sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-        const lines = state.overlayText.split('\n').slice(0,4); const lh=size*1.16; const y = h*.78 - (lines.length-1)*lh/2;
-        lines.forEach((line,i)=>{
-          const yy = y + i*lh; const metrics = ctx.measureText(line); const padX=size*.45, padY=size*.18;
-          ctx.fillStyle='rgba(0,0,0,.38)'; roundRect(ctx, w/2-metrics.width/2-padX, yy-size/2-padY, metrics.width+padX*2, size+padY*2, size*.35); ctx.fill();
-          ctx.lineWidth = Math.max(4,size*.09); ctx.strokeStyle='rgba(0,0,0,.85)'; ctx.strokeText(line,w/2,yy); ctx.fillStyle=state.textColor; ctx.fillText(line,w/2,yy);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                State.imageObj.src = event.target.result;
+                State.imageObj.onload = () => {
+                    UI.uploadScreen.style.display = 'none';
+                    setupCanvases();
+                    saveHistory(); // Salvăm starea inițială
+                };
+            };
+            reader.readAsDataURL(file);
         });
-      }
-      if(state.sticker.trim()){
-        const size = Math.round(h*.075); ctx.font = `${size}px Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.shadowColor='rgba(0,0,0,.65)'; ctx.shadowBlur=24; ctx.shadowOffsetY=10; ctx.fillText(state.sticker, w*.76, h*.65); ctx.shadowBlur=0;
-      }
-      const blob = await new Promise(res=>canvas.toBlob(res,'image/png'));
-      return blob;
-    }
-    function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
-    async function buildExportArgs({inName, imgIndex, imgName, voiceIndex, smoothEngine}){
-      const args=[];
-      const duration = state.trimEnd>state.trimStart ? state.trimEnd-state.trimStart : null;
-      if(state.trimStart>0) args.push('-ss', String(state.trimStart.toFixed(3)));
-      if(duration) args.push('-t', String(duration.toFixed(3)));
-      args.push('-i', inName);
-      args.push('-i','overlay.png');
-      if(imgIndex !== null) args.push('-i', imgName);
-      if(voiceIndex !== null) args.push('-i','voice.webm');
+        function setupCanvases() {
+            // Setăm rezoluția internă a canvas-urilor la rezoluția reală a imaginii
+            UI.displayCanvas.width = State.imageObj.width;
+            UI.displayCanvas.height = State.imageObj.height;
+            UI.maskCanvas.width = State.imageObj.width;
+            UI.maskCanvas.height = State.imageObj.height;
 
-      let fc = `[0:v]${buildVideoFilters(smoothEngine)}[v0];[v0][1:v]overlay=0:0:format=auto[v1]`;
-      let vlabel='v1';
-      if(imgIndex !== null){
-        const ow = Math.max(160, Math.round((state.meta.w||1080)*0.34));
-        fc += `;[${imgIndex}:v]scale=${ow}:-1[img];[${vlabel}][img]overlay=W-w-24:24:format=auto[v2]`; vlabel='v2';
-      }
-      args.push('-filter_complex', fc, '-map', `[${vlabel}]`);
+            // Desenăm imaginea
+            ctxDisplay.drawImage(State.imageObj, 0, 0);
+            
+            // Setăm stilul pentru desenat pe mască
+            ctxMask.lineCap = 'round';
+            ctxMask.lineJoin = 'round';
+            ctxMask.strokeStyle = '#ff0000'; // Roșu pentru mască
 
-      if(state.mute || state.detach){ args.push('-an'); }
-      else if(voiceIndex !== null){ args.push('-map', `${voiceIndex}:a`, '-shortest'); }
-      else{
-        args.push('-map','0:a?');
-        const af=[]; if(state.reverse) af.push('areverse'); if(state.speed!==1) af.push(atempoChain(state.speed)); if(state.volume!==1) af.push(`volume=${state.volume.toFixed(3)}`);
-        if(af.length) args.push('-af', af.join(','));
-      }
-      args.push('-c:v','libx264','-preset','ultrafast','-crf',String(qualityCRF()),'-pix_fmt','yuv420p','-movflags','faststart','output.mp4');
-      return args;
-    }
-
-    async function exportVideo(){
-      if(!state.videoFile){ alert('Încarcă întâi un video real.'); $('#videoInput').click(); return; }
-      try{
-        activateTab('export'); setProgress(0); $('#downloadCard').style.display='none';
-        await ensureFFmpeg();
-        const { fetchFile } = FFmpegUtil;
-        const inExt = fileExt(state.videoFile,'mp4'); const inName = 'input.'+inExt;
-        log('Scriu fișierul video în memoria FFmpeg...'); await writeClean(inName, await fetchFile(state.videoFile));
-        const overlayBlob = await makeOverlayPng(); await writeClean('overlay.png', await fetchFile(overlayBlob));
-
-        let imgIndex = null, imgName = null, voiceIndex = null;
-        if(state.imageOverlayFile){ imgIndex = 2; imgName='imageOverlay.'+fileExt(state.imageOverlayFile,'png'); await writeClean(imgName, await fetchFile(state.imageOverlayFile)); }
-        if(state.voiceBlob && state.voiceAsAudio && !state.mute && !state.detach){ voiceIndex = imgIndex===null?2:3; await writeClean('voice.webm', await fetchFile(state.voiceBlob)); }
-
-        const attempts = [];
-        if(state.smoothing && state.speed < 1){
-          attempts.push(['optical','Motion Smoothing Optical Flow']);
-          attempts.push(['linear','Motion Smoothing Linear Fallback']);
-          attempts.push(['blend','Motion Smoothing Blend Fallback']);
-          log(`Motion Smoothing activ: export final ${state.fps}fps, interpolare internă ${smoothSourceFps()}fps înainte de încetinire.`);
-        }else{
-          attempts.push(['off','Export normal']);
+            fitCanvasesToScreen();
+            State.imageLoaded = true;
         }
 
-        let lastErr = null;
-        for(let i=0;i<attempts.length;i++){
-          const [engine,label] = attempts[i];
-          try{
-            try{ await ffmpeg.deleteFile('output.mp4'); }catch(e){}
-            log(`Pornesc ${label}...`);
-            const args = await buildExportArgs({inName,imgIndex,imgName,voiceIndex,smoothEngine:engine});
-            log('Comandă export: ffmpeg '+args.join(' '));
-            await ffmpeg.exec(args);
-            const blob = await readOutput('output.mp4','video/mp4');
-            if(lastOutputURL) URL.revokeObjectURL(lastOutputURL); lastOutputURL = URL.createObjectURL(blob);
-            const a=$('#downloadLink'); a.href=lastOutputURL; a.download='novacut-export-'+Date.now()+'.mp4'; $('#downloadCard').style.display='block'; setProgress(100);
-            log(`Export finalizat cu metoda: ${label}. Descarcă MP4-ul.`);
-            return;
-          }catch(err){
-            lastErr = err;
-            log(`${label} a eșuat: ${(err && err.message) ? err.message : err}`);
-            if(i < attempts.length-1) log('Încerc fallback automat pentru smoothing...');
-          }
+        // --- STREAMING_CHUNK:Implementing responsive sizing and viewport math... ---
+        function fitCanvasesToScreen() {
+            const workRect = UI.workspace.getBoundingClientRect();
+            // Lăsăm padding sus și jos
+            const maxWidth = workRect.width * 0.95;
+            const maxHeight = workRect.height * 0.8;
+
+            const ratioX = maxWidth / UI.displayCanvas.width;
+            const ratioY = maxHeight / UI.displayCanvas.height;
+            State.scale = Math.min(ratioX, ratioY, 1); // Nu scalăm peste dimensiunea originală
+
+            const finalWidth = UI.displayCanvas.width * State.scale;
+            const finalHeight = UI.displayCanvas.height * State.scale;
+
+            const cssText = `width: ${finalWidth}px; height: ${finalHeight}px;`;
+            UI.displayCanvas.style.cssText = cssText;
+            UI.maskCanvas.style.cssText = cssText;
         }
-        throw lastErr || new Error('Export necunoscut eșuat');
-      }catch(err){ console.error(err); log('EROARE export: '+(err.message||err)); alert('Exportul a eșuat: '+(err.message||err)); }
-    }
 
-    async function renderSmoothPreview(){
-      if(!state.videoFile){ alert('Încarcă întâi un video real.'); $('#videoInput').click(); return; }
-      if(!(state.smoothing && state.speed < 1)){ alert('Alege o viteză sub 1x și lasă Motion Smoothing activ.'); return; }
-      try{
-        activateTab('speed'); setProgress(0);
-        await ensureFFmpeg();
-        const { fetchFile } = FFmpegUtil;
-        const inExt = fileExt(state.videoFile,'mp4'); const inName = 'previewInput.'+inExt;
-        await writeClean(inName, await fetchFile(state.videoFile));
-        const start = Math.max(0, (video.currentTime || 0));
-        const dur = Math.min(4, Math.max(1, (state.meta.duration || 5) - start));
-        const engines = ['optical','linear','blend'];
-        let lastErr = null;
-        for(const engine of engines){
-          try{
-            try{ await ffmpeg.deleteFile('smooth-preview.mp4'); }catch(e){}
-            const label = engine==='optical'?'optical flow':engine==='linear'?'linear interpolation':'frame blend';
-            log(`Generez preview smooth real (${label}) din ${dur.toFixed(1)} secunde sursă...`);
-            const args=['-ss',String(start.toFixed(3)),'-t',String(dur.toFixed(3)),'-i',inName,'-an','-filter_complex',`[0:v]${buildVideoFilters(engine,540)}[pv]`,'-map','[pv]','-c:v','libx264','-preset','ultrafast','-crf','24','-pix_fmt','yuv420p','-movflags','faststart','smooth-preview.mp4'];
-            log('Comandă preview: ffmpeg '+args.join(' '));
-            await ffmpeg.exec(args);
-            const blob = await readOutput('smooth-preview.mp4','video/mp4');
-            if(lastSmoothPreviewURL) URL.revokeObjectURL(lastSmoothPreviewURL);
-            lastSmoothPreviewURL = URL.createObjectURL(blob);
-            video.src = lastSmoothPreviewURL;
-            video.playbackRate = 1;
-            await video.play().catch(()=>{});
-            setProgress(100);
-            log(`Preview smooth real generat cu metoda ${label}. Pentru a reveni la fișierul original, apasă Reset sau reîncarcă videoul.`);
-            return;
-          }catch(err){ lastErr=err; log(`Preview ${engine} a eșuat, încerc următorul fallback...`); }
+        window.addEventListener('resize', () => {
+            if (State.imageLoaded) fitCanvasesToScreen();
+        });
+
+        // --- 2. Logica de Desenare a Măștii (Brush) ---
+        // Convertim coordonatele mouse/touch raportate la ecran în coordonate interne ale canvas-ului
+        function getCanvasCoords(e) {
+            const rect = UI.maskCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // Scalare înapoi de la CSS width la rezoluția reală internă
+            const x = (clientX - rect.left) / State.scale;
+            const y = (clientY - rect.top) / State.scale;
+            return { x, y };
         }
-        throw lastErr || new Error('Preview smoothing eșuat');
-      }catch(err){ console.error(err); log('EROARE preview smooth: '+(err.message||err)); alert('Preview smoothing a eșuat: '+(err.message||err)); }
-    }
 
-    async function extractAudio(){
-      if(!state.videoFile){ alert('Încarcă întâi un video.'); $('#videoInput').click(); return; }
-      try{
-        activateTab('audio'); await ensureFFmpeg(); setProgress(0); $('#audioDownload').style.display='none';
-        const { fetchFile } = FFmpegUtil; const inName='audioInput.'+fileExt(state.videoFile,'mp4');
-        await writeClean(inName, await fetchFile(state.videoFile));
-        const args=['-i',inName,'-vn','-c:a','aac','-b:a','192k','audio-extras.m4a'];
-        log('Extrage audio: ffmpeg '+args.join(' ')); await ffmpeg.exec(args);
-        const blob = await readOutput('audio-extras.m4a','audio/mp4'); if(lastAudioURL) URL.revokeObjectURL(lastAudioURL); lastAudioURL=URL.createObjectURL(blob);
-        $('#audioDownloadLink').href=lastAudioURL; $('#audioDownload').style.display='block'; setProgress(100); log('Audio extras finalizat.');
-      }catch(err){ log('EROARE audio: '+(err.message||err)); alert('Nu am putut extrage audio: '+(err.message||err)); }
-    }
+        function startDrawing(e) {
+            if (!State.imageLoaded) return;
+            e.preventDefault();
+            State.isDrawing = true;
+            State.hasMask = true;
+            
+            const coords = getCanvasCoords(e);
+            ctxMask.lineWidth = State.brushSize / State.scale; // Ajustăm grosimea relativ la zoom
+            ctxMask.beginPath();
+            ctxMask.moveTo(coords.x, coords.y);
+            
+            // Desenăm un punct chiar dacă e doar un click scurt
+            ctxMask.lineTo(coords.x + 0.1, coords.y);
+            ctxMask.stroke();
+            
+            updateBrushCursor(e);
+            UI.btnMagicErase.classList.remove('disabled');
+        }
 
-    function updateCommandHint(){
-      if(!logBox.textContent || logBox.textContent==='Aștept video...') return;
-      const hints=[];
-      if(state.speed<1 && state.smoothing) hints.push(`slow motion smooth real ${smoothSourceFps()}→${state.fps}fps`); if(state.overlayText||state.sticker||state.imageOverlayFile) hints.push('overlay real'); if(state.filter!=='none'||state.vignette) hints.push('filtre active'); if(state.trimStart||state.trimEnd) hints.push('trim activ');
-      $('#speedChip').textContent = state.smoothing && state.speed < 1 ? `${state.speed}x + smooth` : `${state.speed}x`;
-    }
+        function draw(e) {
+            updateBrushCursor(e);
+            if (!State.isDrawing) return;
+            e.preventDefault();
+            const coords = getCanvasCoords(e);
+            ctxMask.lineTo(coords.x, coords.y);
+            ctxMask.stroke();
+        }
 
-    setSpeed(1); setResolution(1080); updateSmoothMathBox(); updateOverlay(); updateVisual();
-  </script>
+        function stopDrawing() {
+            State.isDrawing = false;
+        }
+
+        // --- STREAMING_CHUNK:Adding touch/mouse event listeners and UI interactions... ---
+        // Evenimente Mouse
+        UI.maskCanvas.addEventListener('mousedown', startDrawing);
+        window.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', stopDrawing);
+        
+        // Evenimente Touch (Mobile)
+        UI.maskCanvas.addEventListener('touchstart', startDrawing, { passive: false });
+        window.addEventListener('touchmove', draw, { passive: false });
+        window.addEventListener('touchend', stopDrawing);
+
+        // Control Cursor Personalizat
+        function updateBrushCursor(e) {
+            if (!State.imageLoaded || (e.touches && e.type !== 'touchstart' && e.type !== 'touchmove')) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            UI.brushCursor.style.display = 'block';
+            UI.brushCursor.style.left = `${clientX}px`;
+            UI.brushCursor.style.top = `${clientY}px`;
+            UI.brushCursor.style.width = `${State.brushSize}px`;
+            UI.brushCursor.style.height = `${State.brushSize}px`;
+        }
+        
+        UI.workspace.addEventListener('mouseenter', () => { if(State.imageLoaded) UI.brushCursor.style.display = 'block'; });
+        UI.workspace.addEventListener('mouseleave', () => UI.brushCursor.style.display = 'none');
+
+        // Controale UI Bottom
+        UI.brushSize.addEventListener('input', (e) => {
+            State.brushSize = e.target.value;
+            // Trigger cursor update
+            UI.brushCursor.style.width = `${State.brushSize}px`;
+            UI.brushCursor.style.height = `${State.brushSize}px`;
+        });
+
+        UI.btnClearMask.addEventListener('click', clearMask);
+
+        function clearMask() {
+            ctxMask.clearRect(0, 0, UI.maskCanvas.width, UI.maskCanvas.height);
+            State.hasMask = false;
+            UI.btnMagicErase.classList.add('disabled');
+        }
+
+        // --- 3. Undo / Istoric ---
+        function saveHistory() {
+            const currentData = ctxDisplay.getImageData(0, 0, UI.displayCanvas.width, UI.displayCanvas.height);
+            State.history.push(currentData);
+            if (State.history.length > State.maxHistory) State.history.shift();
+            
+            if (State.history.length > 1) UI.btnUndo.classList.remove('disabled');
+        }
+
+        UI.btnUndo.addEventListener('click', () => {
+            if (State.history.length > 1) {
+                State.history.pop(); // Aruncăm starea curentă
+                const previousData = State.history[State.history.length - 1];
+                ctxDisplay.putImageData(previousData, 0, 0);
+                
+                if (State.history.length === 1) UI.btnUndo.classList.add('disabled');
+                clearMask();
+            }
+        });
+
+        // --- 4. ALGORITMUL MAGIC (INPAINTING - CONTENT AWARE FILL) ---
+        // Deoarece nu putem folosi Rețele Neurale de 500MB într-un fișier HTML,
+        // Am scris un algoritm de "Edge-Bleed Inpainting" în JavaScript.
+        // Găsește pixelii roșii ai măștii și îi înlocuiește progresiv cu media
+        // pixelilor curați de pe margine, "topind" gaura dinspre exterior spre interior.
+        // --- STREAMING_CHUNK:Implementing the core Content-Aware Fill (Inpainting) algorithm in JS... ---
+        
+        UI.btnMagicErase.addEventListener('click', () => {
+            if (!State.hasMask) return;
+            
+            UI.loaderScreen.style.display = 'flex';
+            
+            // Oferim timp UI-ului să randeze loader-ul înainte de a îngheța thread-ul JS
+            setTimeout(() => {
+                processInpainting();
+                UI.loaderScreen.style.display = 'none';
+                clearMask();
+                saveHistory(); // Salvăm noua stare
+            }, 100);
+        });
+
+        function processInpainting() {
+            const w = UI.displayCanvas.width;
+            const h = UI.displayCanvas.height;
+            const imgData = ctxDisplay.getImageData(0, 0, w, h);
+            const maskData = ctxMask.getImageData(0, 0, w, h);
+            
+            const pixels = imgData.data;
+            const mask = maskData.data;
+            
+            // 1. Creăm un array binar pentru a ști ușor ce e mascat (1) și ce nu (0)
+            let isMasked = new Uint8Array(w * h);
+            let maskedCount = 0;
+            for (let i = 0; i < mask.length; i += 4) {
+                // Dacă canalul Alpha al măștii este > 0, înseamnă că am desenat acolo
+                if (mask[i + 3] > 0) {
+                    isMasked[i / 4] = 1;
+                    maskedCount++;
+                }
+            }
+
+            if (maskedCount === 0) return;
+
+            // 2. Iterative Edge Bleed Algorithm (Fast Box-blur inward)
+            // Executăm multiple treceri (passes) pentru a umple de la margine spre centru
+            const passes = 30; // Mai multe treceri = acoperire mai mare, dar mai lent
+            const tempPixels = new Uint8ClampedArray(pixels);
+
+            for (let pass = 0; pass < passes; pass++) {
+                let changed = false;
+                
+                // Copiem buffer-ul curent pentru a citi din starea anterioară și a scrie în cea nouă
+                const readPixels = new Uint8ClampedArray(tempPixels);
+                const readMask = new Uint8Array(isMasked);
+
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const idx = y * w + x;
+                        
+                        // Dacă pixelul e mascat, încercăm să-i dăm o valoare
+                        if (readMask[idx] === 1) {
+                            let r = 0, g = 0, b = 0, count = 0;
+
+                            // Verificăm vecinii (kernel 3x3)
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                    if (dx === 0 && dy === 0) continue;
+                                    const nx = x + dx;
+                                    const ny = y + dy;
+                                    
+                                    if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                                        const nIdx = ny * w + nx;
+                                        // Luăm culoarea doar de la pixelii NE-mascați (sau deja reparați în pașii anteriori)
+                                        if (readMask[nIdx] === 0) {
+                                            const pIdx = nIdx * 4;
+                                            r += readPixels[pIdx];
+                                            g += readPixels[pIdx + 1];
+                                            b += readPixels[pIdx + 2];
+                                            count++;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Dacă am găsit vecini buni pe marginea măștii, facem media culorilor
+                            if (count > 0) {
+                                const pIdx = idx * 4;
+                                tempPixels[pIdx] = r / count;
+                                tempPixels[pIdx + 1] = g / count;
+                                tempPixels[pIdx + 2] = b / count;
+                                tempPixels[pIdx + 3] = 255; // Opacitate completă
+                                
+                                // Marcăm pixelul ca reparat pentru runda următoare
+                                isMasked[idx] = 0; 
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+                
+                // Dacă nu mai avem pixeli de umplut (obiect mic) sau am terminat trecerile
+                if (!changed) break; 
+            }
+
+            // 3. (Opțional dar recomandat) Un mic Blur Gaussian final STRICT pe zona reparată
+            // pentru a amesteca mai natural pixelii aduși de pe margini
+            // (Îl sărim aici pentru a păstra performanța JS în browser)
+
+            // Suprascriem imaginea vizibilă cu datele procesate
+            ctxDisplay.putImageData(new ImageData(tempPixels, w, h), 0, 0);
+        }
+
+        // --- 5. Export ---
+        // --- STREAMING_CHUNK:Finalizing UI logic and download export... ---
+        UI.btnExport.addEventListener('click', () => {
+            if (!State.imageLoaded) return;
+            
+            // Convertim direct imaginea din displayCanvas într-un fișier
+            const dataURL = UI.displayCanvas.toDataURL('image/jpeg', 0.95); // 95% Calitate
+            
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = `CMN_Retouch_${Date.now()}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+    </script>
 </body>
 </html>

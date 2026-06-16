@@ -2,111 +2,132 @@
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CMN Dual Strike Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CMN Scribble - Whiteboard Colaborativ</title>
     
-    <!-- Librării Externe: PeerJS pentru P2P și QRCode pentru conectare rapidă -->
+    <!-- Librării pentru WebRTC P2P și QR Code -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 
         :root {
-            --p1-color: #00e5ff; /* Cyan pentru Host */
-            --p2-color: #ff0055; /* Magenta pentru Guest */
-            --bg-color: #05050a;
-            --ui-glass: rgba(20, 20, 30, 0.8);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-dark: #1e293b;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
 
         body {
-            background-color: var(--bg-color);
+            background-color: var(--bg-dark);
             color: white;
             overflow: hidden;
             width: 100vw; height: 100vh;
-            touch-action: none; /* Previne gesturile native pe mobil */
+            touch-action: none; /* Previne scroll-ul pe mobil la desenare */
         }
 
-        /* Sistem de Ecrane (Screens) */
+        /* --- Meniuri și Ecrane --- */
         .screen {
             position: absolute; inset: 0;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: radial-gradient(circle at center, #111522 0%, var(--bg-color) 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
             z-index: 10;
             transition: opacity 0.4s ease, transform 0.4s ease;
         }
         .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; transform: scale(1.05); }
 
-        /* Typography & Neon Effects */
-        h1 { 
-            font-size: 3rem; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 40px; text-align: center; 
-            text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px var(--p1-color);
-        }
-        .title-dual { color: white; }
-        .title-strike { color: var(--p2-color); font-weight: 900; }
+        h1 { font-size: 3rem; font-weight: 800; margin-bottom: 30px; text-align: center; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p.subtitle { color: #94a3b8; margin-top: -20px; margin-bottom: 40px; font-size: 1.1rem; }
 
-        /* Butoane Premium */
         .btn {
-            background: var(--ui-glass); backdrop-filter: blur(10px);
-            border: 2px solid white; color: white;
-            padding: 18px 50px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px;
-            margin: 12px; border-radius: 40px; cursor: pointer; transition: all 0.2s;
-            position: relative; overflow: hidden; font-weight: 700;
+            background: var(--primary); color: white; border: none;
+            padding: 15px 40px; font-size: 1.1rem; font-weight: 600;
+            border-radius: 30px; cursor: pointer; transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+            margin: 10px; width: 80%; max-width: 300px;
         }
-        .btn::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        .btn:active { transform: scale(0.95); }
-        .btn-host { border-color: var(--p1-color); box-shadow: 0 0 20px rgba(0, 229, 255, 0.3); color: var(--p1-color); }
-        .btn-join { border-color: var(--p2-color); box-shadow: 0 0 20px rgba(255, 0, 85, 0.3); color: var(--p2-color); }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-3px); box-shadow: 0 15px 25px rgba(99, 102, 241, 0.4); }
+        .btn:active { transform: translateY(0); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); box-shadow: none; }
 
-        /* Meniuri Secundare (Lobby/Join) */
         .panel {
-            background: var(--ui-glass); padding: 30px; border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px);
-            display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 400px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-        
-        .qr-wrapper {
-            background: white; padding: 15px; border-radius: 15px; margin: 20px 0;
-            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+            background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(15px);
+            padding: 40px 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 450px;
         }
 
+        .qr-wrapper { background: white; padding: 20px; border-radius: 16px; margin: 20px 0; box-shadow: 0 0 30px rgba(99, 102, 241, 0.2); }
+        
         .code-input {
-            background: rgba(0,0,0,0.5); border: 2px solid var(--p2-color);
-            color: white; font-size: 2rem; text-align: center; padding: 15px; border-radius: 15px;
-            outline: none; text-transform: uppercase; letter-spacing: 5px; margin: 20px 0; width: 100%;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.8); font-family: monospace;
+            background: rgba(15, 23, 42, 0.8); border: 2px solid var(--primary);
+            color: white; font-size: 2.5rem; text-align: center; padding: 15px; border-radius: 16px;
+            outline: none; text-transform: uppercase; letter-spacing: 8px; margin: 20px 0; width: 100%;
         }
 
-        /* Game UI */
-        #gameUI {
-            position: absolute; inset: 0; pointer-events: none; z-index: 20;
-            display: flex; flex-direction: column; justify-content: space-between; padding: 30px 20px;
+        /* --- Tabla de Desen (Whiteboard) --- */
+        #whiteboardScreen { background: #ffffff; cursor: crosshair; }
+        
+        canvas {
+            display: block;
+            width: 100vw; height: 100vh;
+            background: #ffffff;
         }
-        .hud-top { display: flex; justify-content: space-between; align-items: flex-start; transform: rotate(180deg); }
-        .hud-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
-        
-        .health-bar { display: flex; gap: 8px; }
-        .heart { width: 25px; height: 10px; background: white; border-radius: 5px; box-shadow: 0 0 15px white; transition: 0.3s; }
-        .heart.lost { background: rgba(255,255,255,0.1); box-shadow: none; border: 1px solid rgba(255,255,255,0.2); }
 
-        .player-label { font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 5px; }
+        /* --- Toolbar (Unelte Desen) --- */
+        .toolbar {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            padding: 15px 25px; border-radius: 20px; border: 1px solid var(--glass-border);
+            display: flex; gap: 20px; align-items: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            z-index: 20; color: var(--text-dark);
+        }
 
-        canvas { display: block; width: 100%; height: 100%; }
-        
+        .tool-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .tool-label { font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; }
+
+        input[type="color"] {
+            -webkit-appearance: none; border: none; width: 40px; height: 40px;
+            border-radius: 50%; cursor: pointer; overflow: hidden; padding: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+        input[type="range"] { width: 100px; accent-color: var(--primary); cursor: pointer; }
+
+        .icon-btn {
+            background: #f1f5f9; border: none; width: 40px; height: 40px;
+            border-radius: 12px; cursor: pointer; font-size: 1.2rem;
+            display: flex; justify-content: center; align-items: center;
+            transition: 0.2s; color: #475569;
+        }
+        .icon-btn:hover { background: #e2e8f0; color: var(--primary); }
+        .icon-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); }
+
+        /* Status Conexiune în joc */
+        .conn-status {
+            position: absolute; top: 20px; left: 20px;
+            background: var(--glass-bg); padding: 8px 15px; border-radius: 12px;
+            font-size: 0.85rem; font-weight: 600; color: var(--text-dark);
+            display: flex; align-items: center; gap: 8px; z-index: 20;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); backdrop-filter: blur(10px);
+        }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
         /* Notificări Toast */
         .toast {
             position: absolute; top: 40px; left: 50%; transform: translateX(-50%) translateY(-20px);
-            background: rgba(0,0,0,0.8); color: white; padding: 12px 25px;
-            border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); font-size: 14px;
-            z-index: 100; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: bold; letter-spacing: 1px;
+            background: rgba(15, 23, 42, 0.9); color: white; padding: 12px 25px;
+            border-radius: 30px; font-size: 14px; font-weight: 600;
+            z-index: 100; transition: all 0.4s ease; opacity: 0; pointer-events: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -114,91 +135,85 @@
 </head>
 <body>
 
-    <!-- Notificări -->
-    <div class="toast" id="toastBox">Mesaj de sistem</div>
+    <div class="toast" id="toastBox">Notificare</div>
 
-    <!-- ECRAN 1: MENIU PRINCIPAL -->
+    <!-- ECRAN 1: Meniu Principal -->
     <div class="screen" id="menuScreen">
-        <h1><span class="title-dual">DUAL</span><br><span class="title-strike">STRIKE</span></h1>
-        <button class="btn btn-host" onclick="hostGame()">Gazduiește Joc</button>
-        <button class="btn btn-join" onclick="showJoinScreen()">Alătură-te</button>
-        <div style="position: absolute; bottom: 20px; font-size: 10px; color: #555; letter-spacing: 2px;">V 2.0 REALTIME ENGINE</div>
+        <h1>CMN Scribble</h1>
+        <p class="subtitle">Tablă de desen colaborativă în timp real</p>
+        <button class="btn" onclick="hostRoom()">Crează o Cameră</button>
+        <button class="btn btn-outline" onclick="showJoinScreen()">Alătură-te</button>
     </div>
 
-    <!-- ECRAN 2: LOBBY GAZDĂ -->
+    <!-- ECRAN 2: Lobby Gazdă -->
     <div class="screen hidden" id="hostScreen">
         <div class="panel">
-            <h2 style="color: var(--p1-color); margin-bottom: 10px;">LOBBY GAZDĂ</h2>
-            <p style="font-size: 12px; color: #aaa; text-align: center;">Prietenul tău trebuie să scaneze acest cod QR sau să introducă codul de mai jos.</p>
+            <h2 style="margin-bottom: 10px; color: #f8fafc;">Așteptăm partenerul...</h2>
+            <p style="font-size: 0.9rem; color: #94a3b8; text-align: center;">Scanează codul de pe alt dispozitiv sau introdu codul manual.</p>
             
             <div class="qr-wrapper" id="qrcode"></div>
             
-            <div style="font-size: 2rem; font-weight: 900; letter-spacing: 5px; color: white;" id="roomIdDisplay">...</div>
+            <div style="font-size: 2.5rem; font-weight: 800; letter-spacing: 6px; color: var(--primary);" id="roomIdDisplay">...</div>
             
-            <button class="btn" style="margin-top: 30px; font-size: 14px; padding: 10px 30px;" onclick="location.reload()">Anulează</button>
+            <button class="btn btn-outline" style="margin-top: 30px;" onclick="location.reload()">Anulează</button>
         </div>
     </div>
 
-    <!-- ECRAN 3: CONECTARE OASPETE -->
+    <!-- ECRAN 3: Conectare -->
     <div class="screen hidden" id="joinScreen">
         <div class="panel">
-            <h2 style="color: var(--p2-color); margin-bottom: 10px;">CONECTARE</h2>
-            <p style="font-size: 12px; color: #aaa; text-align: center;">Introdu codul afișat pe ecranul prietenului tău.</p>
+            <h2 style="margin-bottom: 10px; color: #f8fafc;">Intră în Cameră</h2>
+            <p style="font-size: 0.9rem; color: #94a3b8; text-align: center;">Introdu codul afișat de gazdă.</p>
             
-            <input type="text" class="code-input" id="joinCodeInput" placeholder="EX: A1B2C" maxlength="6">
+            <input type="text" class="code-input" id="joinCodeInput" placeholder="A1B2C" maxlength="5">
             
-            <button class="btn btn-join" style="width: 100%;" onclick="joinGameFromInput()">Conectează-te</button>
-            <button class="btn" style="width: 100%; font-size: 14px; padding: 10px;" onclick="location.reload()">Înapoi</button>
+            <button class="btn" style="width: 100%;" onclick="joinRoomFromInput()">Conectează-te</button>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 10px;" onclick="location.reload()">Înapoi</button>
         </div>
     </div>
 
-    <!-- ECRAN 4: GAME OVER -->
-    <div class="screen hidden" id="gameOverScreen">
-        <h1 id="gameOverTitle" style="font-size: 4rem; margin-bottom: 20px;">VICTORIE</h1>
-        <p id="gameOverSub" style="color: #aaa; margin-bottom: 40px; letter-spacing: 2px;">Inamicul a fost distrus</p>
-        <button class="btn" onclick="location.reload()">Meniu Principal</button>
-    </div>
-
-    <!-- ECRAN 5: GAMEPLAY -->
-    <div class="screen hidden" id="gameScreen" style="background: transparent;">
-        <div id="gameUI">
-            <!-- HUD Inamic (Sus, rotit la 180 grade pentru tip-to-tip) -->
-            <div class="hud-top">
-                <div>
-                    <div class="player-label">INAMIC</div>
-                    <div class="health-bar" id="enemyHealthUI">
-                        <div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- HUD Jucător (Jos) -->
-            <div class="hud-bottom">
-                <div>
-                    <div class="player-label">SCUTURILE TALE</div>
-                    <div class="health-bar" id="myHealthUI">
-                        <div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div>
-                    </div>
-                </div>
-                <div style="font-size: 10px; color: rgba(255,255,255,0.3);" id="pingDisplay">PING: --</div>
-            </div>
-        </div>
+    <!-- ECRAN 4: Whiteboard (Tabla de Desen) -->
+    <div class="screen hidden" id="whiteboardScreen">
         
-        <canvas id="gameCanvas"></canvas>
+        <div class="conn-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Conectat</span>
+        </div>
+
+        <canvas id="drawingBoard"></canvas>
+        
+        <!-- Bara cu unelte (Toolbar) -->
+        <div class="toolbar">
+            <div class="tool-group">
+                <span class="tool-label">Culoare</span>
+                <input type="color" id="colorPicker" value="#000000">
+            </div>
+            
+            <div class="tool-group">
+                <span class="tool-label">Grosime</span>
+                <input type="range" id="brushSize" min="1" max="40" value="4">
+            </div>
+
+            <div class="tool-group" style="flex-direction: row; gap: 10px; margin-left: 10px; align-items: flex-end;">
+                <button class="icon-btn active" id="btnPen" title="Pensulă">🖌️</button>
+                <button class="icon-btn" id="btnEraser" title="Radieră">🧹</button>
+                <div style="width: 1px; height: 30px; background: #cbd5e1; margin: 0 5px;"></div>
+                <button class="icon-btn" id="btnClear" title="Șterge Tot" style="color: #ef4444;">🗑️</button>
+                <button class="icon-btn" id="btnDownload" title="Descarcă Desen" style="color: #10b981;">💾</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // --- Referințe DOM Globale ---
+        // --- 1. Gestiunea ECRANELOR ȘI NOTIFICĂRILOR ---
         const UI = {
             menu: document.getElementById('menuScreen'),
             host: document.getElementById('hostScreen'),
             join: document.getElementById('joinScreen'),
-            game: document.getElementById('gameScreen'),
-            gameOver: document.getElementById('gameOverScreen'),
+            whiteboard: document.getElementById('whiteboardScreen'),
             toast: document.getElementById('toastBox')
         };
         
-        // Funcții Utilitare UI
         function showToast(text, duration = 3000) {
             UI.toast.innerText = text;
             UI.toast.classList.add('show');
@@ -206,61 +221,31 @@
         }
 
         function switchScreen(screenName) {
-            Object.values(UI).forEach(s => {
-                if(s && s.classList) s.classList.add('hidden');
-            });
+            Object.values(UI).forEach(s => { if(s.classList) s.classList.add('hidden'); });
             UI[screenName].classList.remove('hidden');
         }
 
         function generateShortId() { return Math.random().toString(36).substring(2, 7).toUpperCase(); }
 
-        // --- Variabile Rețea P2P ---
+        // --- 2. SISTEMUL DE REȚEA WEBRTC (PeerJS) ---
         let peer = null;
         let conn = null;
-        let isHost = false;
-        let myColor = '';
-        let enemyColor = '';
         
-        // --- Variabile Joc ---
-        const MAX_HP = 5;
-        let gameActive = false;
-        let myHealth = MAX_HP;
-        let enemyHealth = MAX_HP;
-        let lastNetTick = 0;
-        
-        // --- Setup Canvas ---
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        
-        function resize() {
-            width = window.innerWidth; height = window.innerHeight;
-            canvas.width = width; canvas.height = height;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        // 1. GĂZDUIRE JOC
-        function hostGame() {
-            isHost = true;
-            myColor = 'var(--p1-color)';
-            enemyColor = 'var(--p2-color)';
-            
-            const roomId = "CMN-" + generateShortId();
+        function hostRoom() {
+            const roomId = generateShortId();
             switchScreen('host');
-            document.getElementById('roomIdDisplay').innerText = roomId.replace('CMN-', '');
+            document.getElementById('roomIdDisplay').innerText = roomId;
 
-            peer = new Peer(roomId);
+            peer = new Peer("CMNSCRB-" + roomId); // Prefix pentru a evita coliziuni globale
 
             peer.on('open', (id) => {
-                showToast("Sesiune creată. Așteptăm un jucător...");
-                // QR Code Generare
-                const joinUrl = window.location.href.split('?')[0] + "?join=" + id;
+                showToast("Cameră creată!");
+                // Generare QR Code cu link de auto-join
+                const joinUrl = window.location.href.split('?')[0] + "?join=" + roomId;
                 document.getElementById('qrcode').innerHTML = "";
                 new QRCode(document.getElementById('qrcode'), {
-                    text: joinUrl, width: 220, height: 220,
-                    colorDark : "#00e5ff", colorLight : "#ffffff"
+                    text: joinUrl, width: 200, height: 200,
+                    colorDark : "#4f46e5", colorLight : "#ffffff"
                 });
             });
 
@@ -269,394 +254,218 @@
                 setupConnectionHandlers();
             });
 
-            peer.on('error', (err) => showToast("Eroare de rețea: " + err.type));
+            peer.on('error', (err) => showToast("Eroare WebRTC: " + err.type));
         }
 
-        // 2. ALĂTURARE JOC (GUEST)
         function showJoinScreen() { switchScreen('join'); }
 
-        function joinGameFromInput() {
+        function joinRoomFromInput() {
             const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
             if(code.length === 0) return;
-            joinGame("CMN-" + code);
+            joinRoom(code);
         }
 
-        function joinGame(hostId) {
-            isHost = false;
-            myColor = 'var(--p2-color)';
-            enemyColor = 'var(--p1-color)';
-            
-            showToast("Conectare la " + hostId + "...");
+        function joinRoom(hostId) {
+            showToast("Se conectează...");
             peer = new Peer();
 
-            peer.on('open', (id) => {
-                // Pentru viteză maximă în jocuri, dezactivăm 'reliable' dacă browserul suportă canale UDP over WebRTC.
-                // Însă, pentru stabilitatea evenimentelor (hit, bullet) păstrăm default. Vom optimiza pachetele.
-                conn = peer.connect(hostId);
+            peer.on('open', () => {
+                conn = peer.connect("CMNSCRB-" + hostId);
                 conn.on('open', () => setupConnectionHandlers());
-                conn.on('error', () => showToast("Conexiune eșuată!"));
+                conn.on('error', () => showToast("Nu am găsit camera!"));
             });
         }
 
         function setupConnectionHandlers() {
-            showToast("CONEXIUNE STABILITĂ!", 2000);
-            
+            showToast("Sincronizat!", 2000);
+            switchScreen('whiteboard');
+            resizeCanvas(); // Ajustează canvas-ul când ecranul e afișat
+
+            // Recepționare date de la celălalt jucător
             conn.on('data', (data) => {
-                if (!gameActive) return;
-                
-                // Parsare Protocol Ultra-Lightweight (pentru performanță max)
-                // {t: 'tip', x: coordonata, ...}
-                switch(data.t) {
-                    case 'p': // P = Poziție Inamic
-                        // Inamicul e față în față, deci axa X e oglindită vizual!
-                        enemy.targetX = 1.0 - data.x; 
-                        break;
-                    case 'b': // B = Bullet (Glonț primit)
-                        // Glonțul lui iese pe sus la el, deci intră pe sus la mine. Oglindim X.
-                        bullets.push({ 
-                            x: 1.0 - data.x, 
-                            y: 0, // Intră pe la marginea de sus
-                            vy: 0.02, // Se mișcă în JOS (+)
-                            isMine: false, color: enemyColor 
-                        });
-                        // Efect vizual intrare glonț
-                        createExplosion((1.0 - data.x) * width, 0, enemyColor, 5);
-                        break;
-                    case 'h': // H = Hit (Eu am lovit inamicul)
-                        enemyHealth = data.hp;
-                        updateHealthUI('enemyHealthUI', enemyHealth);
-                        createExplosion(enemy.x * width, enemy.y * height, enemyColor, 20);
-                        if (enemyHealth <= 0) gameOver(true); // Am câștigat!
-                        break;
+                if (data.t === 'd') {
+                    // Desenare linie (Preluată de la partener)
+                    drawLine(data.x0, data.y0, data.x1, data.y1, data.c, data.s, false);
+                } else if (data.t === 'c') {
+                    // Ștergere tablă (Comandă preluată)
+                    clearBoard(false);
                 }
             });
 
             conn.on('close', () => {
-                showToast("Inamicul a părăsit jocul.", 5000);
-                setTimeout(() => location.reload(), 2000);
+                document.getElementById('statusDot').style.background = '#ef4444';
+                document.getElementById('statusText').innerText = 'Deconectat';
+                showToast("Partenerul a părăsit sesiunea.", 5000);
             });
-
-            setTimeout(initGameEngine, 1000);
         }
 
-        // Auto-join din QR Code URL
+        // Auto-join pentru scanarea Codului QR
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const joinId = urlParams.get('join');
-            if (joinId) { switchScreen('menu'); joinGame(joinId); }
+            if (joinId) { switchScreen('join'); joinRoom(joinId); }
         };
 
+        // --- 3. MOTORUL DE DESENARE PE CANVAS ---
+        const canvas = document.getElementById('drawingBoard');
+        const ctx = canvas.getContext('2d');
         
-        // --- Entități Joc ---
-        let player = { x: 0.5, y: 0.85, targetX: 0.5, width: 0.12, height: 0.04 };
-        // Inamicul este desenat în partea de sus
-        let enemy  = { x: 0.5, y: 0.15, targetX: 0.5, width: 0.12, height: 0.04 }; 
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
         
-        let bullets = [];
-        let particles = [];
-        let gridOffset = 0;
-        let screenShake = 0;
-        let lastShootTime = 0;
+        // Unelte active
+        let currentColor = '#000000';
+        let currentSize = 4;
+        let isEraserMode = false;
 
-        function initGameEngine() {
-            switchScreen('game');
-            gameActive = true;
-            myHealth = MAX_HP;
-            enemyHealth = MAX_HP;
-            bullets = [];
-            particles = [];
-            
-            updateHealthUI('myHealthUI', myHealth);
-            updateHealthUI('enemyHealthUI', enemyHealth);
-            
-            // --- Sistem de Control (Touch Optimizat) ---
-            let isDragging = false;
-            
-            canvas.addEventListener('touchstart', (e) => {
-                const touchX = e.touches[0].clientX;
-                const touchY = e.touches[0].clientY;
-                
-                // Zona de jos pentru mișcare, oriunde altundeva (sau tap rapid) pentru a trage
-                if (touchY > height * 0.6) {
-                    isDragging = true;
-                    player.targetX = touchX / width;
-                } else {
-                    shoot();
-                }
-            }, {passive: false});
+        // Referințe Controale UI
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const btnPen = document.getElementById('btnPen');
+        const btnEraser = document.getElementById('btnEraser');
 
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault(); // Previne scroll
-                if(isDragging) {
-                    let tx = e.touches[0].clientX / width;
-                    // Limitare la ecran
-                    player.targetX = Math.max(player.width/2, Math.min(1 - player.width/2, tx));
-                }
-            }, {passive: false});
-
-            canvas.addEventListener('touchend', () => { isDragging = false; });
-            
-            // Pentru teste pe Desktop
-            canvas.addEventListener('mousemove', (e) => {
-                player.targetX = Math.max(player.width/2, Math.min(1 - player.width/2, e.clientX / width));
-            });
-            canvas.addEventListener('mousedown', shoot);
-
-            requestAnimationFrame(gameLoop);
+        // Funcție pentru fundal alb (dacă nu-l punem, salvarea imaginii va fi cu fundal negru transparent)
+        function initWhiteBackground() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        function shoot() {
-            const now = Date.now();
-            if(now - lastShootTime > 250) { // Cooldown 250ms
-                bullets.push({ 
-                    x: player.x, 
-                    y: player.y - 0.04, 
-                    vy: -0.025, // Merge în SUS (-)
-                    isMine: true, color: myColor 
-                });
-                // Efect recul/propulsie glonț
-                createExplosion(player.x * width, player.y * height - 20, '#fff', 5);
-                lastShootTime = now;
-            }
-        }
-
-        function updateHealthUI(elementId, hp) {
-            const hearts = document.querySelectorAll(`#${elementId} .heart`);
-            hearts.forEach((h, index) => {
-                if (index >= hp) h.classList.add('lost');
-                else h.classList.remove('lost');
-            });
-        }
-
-        function gameOver(didIWin) {
-            gameActive = false;
-            switchScreen('gameOver');
+        // Redimensionare Canvas la mărimea ferestrei
+        function resizeCanvas() {
+            // Salvăm desenul curent
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             
-            const title = document.getElementById('gameOverTitle');
-            const sub = document.getElementById('gameOverSub');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             
-            if (didIWin) {
-                title.innerText = "VICTORIE";
-                title.style.color = myColor; title.style.textShadow = `0 0 30px ${myColor}`;
-                sub.innerText = "Inamicul a fost anihilat!";
-            } else {
-                title.innerText = "DISTRUS";
-                title.style.color = 'white'; title.style.textShadow = `0 0 30px red`;
-                sub.innerText = "Scuturile tale au cedat...";
-            }
-            if (conn) setTimeout(() => conn.close(), 2000);
-        }
-
-        function gameLoop() {
-            if (!gameActive) return;
-            updatePhysics();
-            renderGraphics();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function updatePhysics() {
-            // 1. Interpolare liniară pentru mișcare super-fluidă (Anulează lag-ul!)
-            player.x += (player.targetX - player.x) * 0.3;
-            enemy.x += (enemy.targetX - enemy.x) * 0.3; // Interpolăm datele primite de pe net
-
-            // 2. Transmitere Poziție în rețea (Throttle la ~30fps pentru a nu sufoca WebRTC)
-            const now = Date.now();
-            if (now - lastNetTick > 33) {
-                if(conn && conn.open) conn.send({ t: 'p', x: player.x });
-                lastNetTick = now;
-            }
-
-            // 3. Zguduirea ecranului (Screen Shake decay)
-            if (screenShake > 0) screenShake *= 0.9;
-            if (screenShake < 0.5) screenShake = 0;
-
-            // 4. Update Fundal (Grid)
-            gridOffset = (gridOffset + 2) % 50;
-
-            // 5. Generare particule propulsie navă
-            if(Math.random() > 0.5) {
-                particles.push({
-                    x: player.x * width + (Math.random() - 0.5) * 10,
-                    y: player.y * height + 15,
-                    vx: (Math.random() - 0.5) * 1, vy: Math.random() * 3 + 2,
-                    life: 1.0, color: myColor, size: Math.random() * 3 + 2
-                });
-            }
-
-            // 6. Update Gloanțe & Coliziuni
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i];
-                b.y += b.vy;
-
-                // A. Glonțul MEU iese prin partea de SUS -> Îl trimit în telefonul inamicului
-                if (b.isMine && b.y < 0) {
-                    if (conn && conn.open) conn.send({ t: 'b', x: b.x });
-                    createExplosion(b.x * width, 0, myColor, 5); // Efect "spargere ecran" la ieșire
-                    bullets.splice(i, 1);
-                    continue;
-                }
-
-                // B. Glonțul INAMIC iese prin partea de JOS -> Ratare
-                if (!b.isMine && b.y > 1) {
-                    bullets.splice(i, 1);
-                    continue;
-                }
-
-                // C. Coliziune: Glonțul INAMIC mă lovește
-                if (!b.isMine) {
-                    // Hitbox simplificat pentru navă
-                    const hitX = Math.abs(b.x - player.x) < (player.width / 2);
-                    const hitY = Math.abs(b.y - player.y) < (player.height / 2);
-                    
-                    if (hitX && hitY) {
-                        myHealth--;
-                        updateHealthUI('myHealthUI', myHealth);
-                        screenShake = 20; // Cutremur masiv
-                        createExplosion(player.x * width, player.y * height, myColor, 30);
-                        
-                        // Anunț inamicul că M-A LOVIT
-                        if (conn && conn.open) conn.send({ t: 'h', hp: myHealth });
-                        
-                        bullets.splice(i, 1);
-                        if (myHealth <= 0) gameOver(false);
-                    }
-                }
-            }
-
-            // 7. Update Particule (Explozii)
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx; p.y += p.vy;
-                p.life -= 0.03;
-                if (p.life <= 0) particles.splice(i, 1);
-            }
-        }
-
-        function createExplosion(x, y, color, amount) {
-            for(let i=0; i<amount; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 5 + 1;
-                particles.push({
-                    x: x, y: y,
-                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-                    life: 1.0, color: color, size: Math.random() * 4 + 2
-                });
-            }
-        }
-
-        function renderGraphics() {
-            // Curățare cadru cu opacitate mică pentru efect de "motion blur" pe gloanțe
-            ctx.fillStyle = 'rgba(5, 5, 10, 0.4)';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.save();
+            initWhiteBackground();
+            // Restaurăm desenul (îl punem înapoi peste noul canvas redimensionat)
+            ctx.putImageData(imgData, 0, 0);
             
-            // Aplicare Screen Shake
-            if (screenShake > 0) {
-                const dx = (Math.random() - 0.5) * screenShake;
-                const dy = (Math.random() - 0.5) * screenShake;
-                ctx.translate(dx, dy);
-            }
-
-            // 1. Desenare Fundal Cyber-Grid (Perspective falsă 3D)
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            // Linii orizontale (mișcare)
-            for(let y = gridOffset; y < height; y += 50) {
-                ctx.moveTo(0, y); ctx.lineTo(width, y);
-            }
-            // Linii verticale (fugi spre infinit)
-            const centerX = width / 2;
-            for(let x = -width; x < width * 2; x += 60) {
-                ctx.moveTo(centerX, height/2); // Punct de fugă la mijloc
-                ctx.lineTo(x, height);
-                ctx.moveTo(centerX, height/2);
-                ctx.lineTo(x, 0);
-            }
-            ctx.stroke();
-
-            // Setări globale Glow (Juice)
+            // Setări implicite pensulă
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-
-            // Funcție helper pentru desenare navă (Stil Space-Fighter modern)
-            const drawShip = (shipObj, isEnemy) => {
-                const px = shipObj.x * width;
-                const py = shipObj.y * height;
-                const pw = shipObj.width * width;
-                const ph = shipObj.height * height;
-                const color = isEnemy ? enemyColor : myColor;
-                const dir = isEnemy ? 1 : -1; // 1 = jos, -1 = sus
-
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = color;
-                ctx.fillStyle = '#000'; // Corp negru
-                ctx.strokeStyle = color; // Contur Neon
-                ctx.lineWidth = 3;
-
-                ctx.beginPath();
-                ctx.moveTo(px, py + (ph/2 * dir)); // Vârf
-                ctx.lineTo(px - pw/2, py - (ph/2 * dir)); // Aripă Stânga
-                ctx.lineTo(px, py - (ph/4 * dir)); // Spate Centru
-                ctx.lineTo(px + pw/2, py - (ph/2 * dir)); // Aripă Dreapta
-                ctx.closePath();
-                
-                ctx.fill();
-                ctx.stroke();
-                
-                // Detaliu central (Miez luminos)
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.arc(px, py, 4, 0, Math.PI*2);
-                ctx.fill();
-            };
-
-            // 2. Desenează Inamicul (Dacă ambii sunt conectați)
-            if (enemyHealth > 0) drawShip(enemy, true);
-
-            // 3. Desenează Jucătorul Tău
-            if (myHealth > 0) drawShip(player, false);
-
-            // 4. Desenare Gloanțe (Lasere lungi)
-            for (let b of bullets) {
-                const bx = b.x * width;
-                const by = b.y * height;
-                const color = b.isMine ? myColor : enemyColor;
-                
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = color;
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 4;
-
-                ctx.beginPath();
-                ctx.moveTo(bx, by);
-                // Trage o linie de la poziția curentă spre poziția anterioară (coadă de laser)
-                ctx.lineTo(bx, by - (b.vy * 800)); 
-                ctx.stroke();
-
-                // Capăt luminos
-                ctx.fillStyle = '#fff';
-                ctx.beginPath();
-                ctx.arc(bx, by, 3, 0, Math.PI*2);
-                ctx.fill();
-            }
-
-            // 5. Desenare Particule
-            ctx.globalCompositeOperation = 'lighter'; // Efect de foc/neon suprapus
-            for (let p of particles) {
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = p.color;
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-                ctx.fill();
-            }
-            
-            ctx.restore();
         }
+        window.addEventListener('resize', resizeCanvas);
+        initWhiteBackground(); // Initial call
+
+        // Preia coordonatele ABSOLUTE ale mouse-ului/degetului
+        function getCoords(e) {
+            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            return { x: clientX, y: clientY };
+        }
+
+        // Functia principala de desen
+        function drawLine(x0, y0, x1, y1, color, size, emit) {
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size;
+            ctx.stroke();
+            ctx.closePath();
+
+            // Dacă emit == true, înseamnă că NOI am desenat. Trimitem coordonatele partenerului!
+            if (!emit || !conn || !conn.open) return;
+            
+            // Trimitem un pachet ultra-mic JSON
+            conn.send({
+                t: 'd', // Type: Draw
+                x0: x0, y0: y0,
+                x1: x1, y1: y1,
+                c: color, s: size
+            });
+        }
+
+        function clearBoard(emit) {
+            initWhiteBackground();
+            if (emit && conn && conn.open) {
+                conn.send({ t: 'c' }); // Type: Clear
+            }
+        }
+
+        // --- 4. EVENIMENTE MOUSE & TOUCH ---
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            const pos = getCoords(e);
+            lastX = pos.x;
+            lastY = pos.y;
+            // Desenează un punct imediat la click (pentru puncte simple)
+            drawLine(lastX, lastY, lastX, lastY, isEraserMode ? '#ffffff' : currentColor, currentSize, true);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault(); // Oprește comportamentul nativ de scroll (Pinch/Zoom) pe mobil
+            
+            const pos = getCoords(e);
+            const useColor = isEraserMode ? '#ffffff' : currentColor;
+            
+            drawLine(lastX, lastY, pos.x, pos.y, useColor, currentSize, true);
+            
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch Events (Mobil)
+        canvas.addEventListener('touchstart', startDrawing, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchend', stopDrawing);
+        canvas.addEventListener('touchcancel', stopDrawing);
+
+        // --- 5. LOGICA TOOLBAR-ULUI ---
+        
+        colorPicker.addEventListener('input', (e) => {
+            currentColor = e.target.value;
+            if(isEraserMode) { // Dacă alegi o culoare, se dezactivează radiera automat
+                isEraserMode = false;
+                btnEraser.classList.remove('active');
+                btnPen.classList.add('active');
+            }
+        });
+
+        brushSize.addEventListener('input', (e) => {
+            currentSize = e.target.value;
+        });
+
+        btnPen.addEventListener('click', () => {
+            isEraserMode = false;
+            btnPen.classList.add('active');
+            btnEraser.classList.remove('active');
+        });
+
+        btnEraser.addEventListener('click', () => {
+            isEraserMode = true;
+            btnEraser.classList.add('active');
+            btnPen.classList.remove('active');
+        });
+
+        document.getElementById('btnClear').addEventListener('click', () => {
+            if(confirm("Ești sigur că vrei să ștergi tot desenul pentru amândoi?")) {
+                clearBoard(true);
+            }
+        });
+
+        document.getElementById('btnDownload').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `Scribble_CMN_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast("Desen descărcat!");
+        });
 
     </script>
 </body>

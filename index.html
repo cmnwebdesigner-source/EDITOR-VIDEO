@@ -3,115 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CMN Spyfall - Roluri Ascunse</title>
+    <title>CMN Chat - Mesagerie Securizată</title>
     
-    <!-- Librării pentru WebRTC P2P și QR Code -->
+    <!-- Librărie pentru WebRTC (PeerJS) -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
-            --bg-dark: #0f111a;
-            --bg-panel: #1a1d29;
-            --primary: #e11d48; /* Crimson Red */
-            --primary-hover: #be123c;
-            --accent: #2563eb; /* Blue */
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-main: #0b141a; /* WhatsApp Dark Mode vibe */
+            --bg-panel: #111b21;
+            --bg-chat: #0b141a;
+            --primary: #00a884;
+            --primary-hover: #008f6f;
+            --msg-sent: #005c4b;
+            --msg-recv: #202c33;
+            --text-main: #e9edef;
+            --text-muted: #8696a0;
+            --border-color: #222d34;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
 
         body {
-            background-color: var(--bg-dark); color: var(--text-main);
-            overflow-x: hidden; width: 100vw; min-height: 100vh;
-            display: flex; flex-direction: column; align-items: center;
+            background-color: var(--bg-main); color: var(--text-main);
+            overflow: hidden; width: 100vw; height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
 
         /* --- Structura Ecranelor --- */
         .screen {
-            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; padding: 20px;
-            background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-dark) 80%);
-            z-index: 10; transition: opacity 0.3s ease, transform 0.3s ease;
-            overflow-y: auto; padding-top: 5vh;
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-main); z-index: 10; transition: opacity 0.3s ease, transform 0.3s ease;
+            padding: 20px;
         }
         .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; transform: scale(1.05); }
 
-        h1 { font-size: 3rem; font-weight: 900; margin-bottom: 20px; text-align: center; text-transform: uppercase; letter-spacing: 2px; color: white; text-shadow: 0 0 20px rgba(225, 29, 72, 0.5); }
-        h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 15px; color: var(--text-main); text-align: center; }
+        h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; color: white; text-align: center; }
+        p.subtitle { color: var(--text-muted); margin-bottom: 30px; text-align: center; }
 
         .panel {
-            background: var(--bg-panel); padding: 30px; border-radius: 20px; width: 100%; max-width: 450px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05);
-            display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;
+            background: var(--bg-panel); padding: 30px; border-radius: 16px; width: 100%; max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; align-items: center;
         }
 
         .input-text {
-            background: rgba(0,0,0,0.5); border: 2px solid var(--primary); color: white;
-            font-size: 1.2rem; text-align: center; padding: 15px; border-radius: 12px; outline: none; margin-bottom: 20px; width: 100%; font-weight: 600;
+            background: var(--bg-main); border: 1px solid var(--border-color); color: white;
+            font-size: 1.1rem; text-align: center; padding: 15px; border-radius: 10px; outline: none; margin-bottom: 20px; width: 100%; transition: 0.2s;
         }
-        .input-text:focus { border-color: #fb7185; box-shadow: 0 0 15px rgba(225, 29, 72, 0.3); }
+        .input-text:focus { border-color: var(--primary); }
 
         .btn {
-            background: var(--primary); color: white; border: none; padding: 15px 20px; font-size: 1.1rem; font-weight: 800;
-            border-radius: 12px; cursor: pointer; transition: 0.2s; width: 100%; max-width: 350px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;
-            box-shadow: 0 5px 15px rgba(225, 29, 72, 0.4);
+            background: var(--primary); color: #111b21; border: none; padding: 15px 20px; font-size: 1.1rem; font-weight: 700;
+            border-radius: 10px; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px;
         }
-        .btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
-        .btn-outline { background: transparent; border: 2px solid var(--text-muted); color: var(--text-main); box-shadow: none; }
-        .btn-blue { background: var(--accent); box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4); }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--text-muted); color: var(--text-main); }
 
-        /* --- Lobby --- */
-        .room-code-box {
-            background: #000; border: 2px dashed var(--primary); padding: 15px 30px; border-radius: 12px;
-            font-size: 2.5rem; font-weight: 900; letter-spacing: 8px; color: var(--primary); margin: 15px 0;
+        /* --- Ecran Chat Principal --- */
+        #chatScreen {
+            padding: 0; justify-content: flex-start;
         }
-        .players-list { width: 100%; display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
-        .player-item { background: rgba(255,255,255,0.05); padding: 12px 20px; border-radius: 8px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
-        .player-item.is-me { border-left-color: var(--primary); background: rgba(225, 29, 72, 0.1); }
 
-        /* --- Faza de Joc (Rolul) --- */
-        .secret-card {
-            background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid #334155;
-            padding: 40px 20px; border-radius: 20px; width: 100%; max-width: 400px;
-            text-align: center; position: relative; overflow: hidden; margin-top: 20px;
-            transition: 0.3s;
+        /* Header Chat */
+        .chat-header {
+            width: 100%; height: 65px; background: var(--bg-panel); display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; border-bottom: 1px solid var(--border-color); z-index: 20;
         }
-        .secret-card.hidden-role { background: #000; border-color: var(--primary); cursor: pointer; }
-        .secret-card.hidden-role * { opacity: 0; }
-        .secret-card.hidden-role::after { content: 'APASĂ PENTRU A VEDEA ROLUL'; position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; opacity: 1; font-weight: 800; color: var(--primary); font-size: 1.2rem; }
+        .header-info { display: flex; flex-direction: column; }
+        .room-name { font-weight: 600; font-size: 1.1rem; }
+        .room-status { font-size: 0.8rem; color: var(--text-muted); }
+        .room-code-badge { background: var(--border-color); padding: 5px 10px; border-radius: 8px; font-family: monospace; font-weight: bold; letter-spacing: 2px; color: var(--primary); }
 
-        .role-title { font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
-        .role-value { font-size: 2.2rem; font-weight: 900; color: white; margin-bottom: 25px; line-height: 1.2; }
-        .spy-alert { color: var(--primary); font-size: 2.5rem; text-shadow: 0 0 20px rgba(225, 29, 72, 0.8); }
-
-        .timer-box { font-size: 3.5rem; font-weight: 900; color: white; margin: 20px 0; text-shadow: 0 0 15px rgba(255,255,255,0.2); font-variant-numeric: tabular-nums; }
-
-        .location-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 20px;
+        /* Zona Mesaje */
+        .messages-area {
+            flex: 1; width: 100%; background: var(--bg-chat); overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 10px;
+            /* Model fundal subtil tipic aplicatiilor de chat */
+            background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        .loc-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted);
-            padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
-        }
-        .loc-btn.spy-mode { border-color: var(--primary); color: white; }
-        .loc-btn.spy-mode:hover { background: var(--primary); }
 
-        /* --- Faza de Vot --- */
-        .vote-grid { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 20px; }
-        .vote-btn {
-            background: #1e293b; border: 2px solid #334155; padding: 15px; border-radius: 12px;
-            font-size: 1.2rem; font-weight: 800; color: white; cursor: pointer; transition: 0.2s;
+        /* Bule Mesaje */
+        .msg-wrapper { display: flex; flex-direction: column; width: 100%; margin-bottom: 5px; }
+        .msg-wrapper.me { align-items: flex-end; }
+        .msg-wrapper.others { align-items: flex-start; }
+
+        .msg-sender { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px; margin-left: 5px; margin-right: 5px; }
+        
+        .msg-bubble {
+            max-width: 80%; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4;
+            position: relative; word-wrap: break-word;
         }
-        .vote-btn.selected { background: var(--primary); border-color: #fb7185; }
+        .msg-wrapper.me .msg-bubble { background: var(--msg-sent); border-top-right-radius: 2px; }
+        .msg-wrapper.others .msg-bubble { background: var(--msg-recv); border-top-left-radius: 2px; }
+
+        .msg-time { font-size: 0.65rem; color: rgba(255,255,255,0.5); float: right; margin-top: 5px; margin-left: 15px; }
+
+        /* Mesaj Sistem (Ex: Alex s-a conectat) */
+        .msg-system {
+            background: rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.8rem;
+            padding: 5px 15px; border-radius: 15px; align-self: center; margin: 10px 0; text-align: center;
+        }
+
+        /* Footer Chat (Input) */
+        .chat-footer {
+            width: 100%; padding: 15px; background: var(--bg-panel); display: flex; gap: 10px; align-items: flex-end;
+            border-top: 1px solid var(--border-color);
+        }
+        .chat-input {
+            flex: 1; background: var(--border-color); border: none; color: white; padding: 15px; border-radius: 24px;
+            font-size: 1rem; outline: none; resize: none; overflow-y: hidden; max-height: 120px; min-height: 50px;
+        }
+        .btn-send {
+            width: 50px; height: 50px; border-radius: 50%; background: var(--primary); border: none;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .btn-send:hover { background: var(--primary-hover); }
+        .btn-send svg { width: 20px; height: 20px; fill: #111b21; margin-left: 2px; }
 
         /* --- Notificări --- */
         .toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
-            background: rgba(0,0,0,0.9); color: white; padding: 15px 30px; border-radius: 30px;
-            font-weight: 800; font-size: 1.1rem; z-index: 100; opacity: 0; transition: 0.3s; pointer-events: none; border: 2px solid var(--primary);
+            background: var(--text-main); color: var(--bg-main); padding: 10px 25px; border-radius: 30px;
+            font-weight: 600; font-size: 0.9rem; z-index: 100; opacity: 0; transition: 0.3s; pointer-events: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -121,351 +140,216 @@
 
     <div class="toast" id="toastBox">Notificare</div>
 
-    <!-- 0. SETARE NUME -->
+    <!-- 0. ECRAN SETARE NUME -->
     <div class="screen" id="nameScreen">
-        <h1>SPYFALL</h1>
+        <h1>CMN Chat</h1>
+        <p class="subtitle">Comunicare 100% Privată (P2P)</p>
         <div class="panel">
-            <h2>Identifică-te</h2>
-            <input type="text" class="input-text" id="playerName" placeholder="Numele tău de agent" maxlength="12">
-            <button class="btn" onclick="goToMenu()">Confirmă</button>
+            <input type="text" class="input-text" id="playerName" placeholder="Cum te numești?" maxlength="15">
+            <button class="btn" onclick="goToMenu()">Continuă</button>
         </div>
     </div>
 
     <!-- 1. MENIU PRINCIPAL -->
     <div class="screen hidden" id="menuScreen">
-        <h1>SPYFALL</h1>
-        <button class="btn" onclick="createRoom()">Creează Misiune (Gazdă)</button>
-        <button class="btn btn-outline" style="margin-top: 20px;" onclick="switchScreen('joinScreen')">Alătură-te Misiunii</button>
-    </div>
-
-    <!-- 2. LOBBY -->
-    <div class="screen hidden" id="lobbyScreen">
-        <h2>LOBBY MISIUNE</h2>
-        <div class="panel">
-            <div style="color: var(--text-muted); font-weight: 600;">COD SECRET:</div>
-            <div class="room-code-box" id="lobbyCode">...</div>
-            
-            <div class="players-list" id="playerList">
-                <!-- Lista de jucători se populează aici -->
-            </div>
-
-            <button class="btn" id="btnStartGame" style="display: none;" onclick="startGame()">Începe Misiunea</button>
-            <p id="waitText" style="color: var(--text-muted); margin-top: 15px;">Așteptăm ordinul de la gazdă...</p>
+        <h1>BUN VENIT</h1>
+        <p class="subtitle" id="welcomeSubtitle">Alege o acțiune</p>
+        <div class="panel" style="background: transparent; border: none; box-shadow: none; padding: 0;">
+            <button class="btn" onclick="createRoom()">Creează Grup Nou</button>
+            <button class="btn btn-outline" style="margin-top: 15px;" onclick="switchScreen('joinScreen')">Intră într-un Grup</button>
         </div>
     </div>
 
-    <!-- JOIN SCREEN -->
+    <!-- 2. ECRAN JOIN -->
     <div class="screen hidden" id="joinScreen">
         <div class="panel">
-            <h2>Introdu Codul</h2>
-            <input type="text" class="input-text" id="joinCodeInput" placeholder="EX: A1B2C" style="text-transform: uppercase;">
+            <h2 style="margin-bottom: 20px; color: white;">Intră în Grup</h2>
+            <input type="text" class="input-text" id="joinCodeInput" placeholder="INTRODU CODUL (5 litere)" style="text-transform: uppercase; font-family: monospace; letter-spacing: 2px;">
             <button class="btn" onclick="joinRoom()">Conectare</button>
             <button class="btn btn-outline" onclick="switchScreen('menuScreen')">Înapoi</button>
         </div>
     </div>
 
-    <!-- 3. ECRAN JOC (ROLURI) -->
-    <div class="screen hidden" id="gameScreen">
-        <div class="timer-box" id="gameTimer">05:00</div>
+    <!-- 3. ECRAN CHAT PRINCIPAL -->
+    <div class="screen hidden" id="chatScreen">
         
-        <div class="secret-card hidden-role" id="roleCard" onclick="toggleRoleVisibility()">
-            <div class="role-title" id="lblLoc">Locația Curentă:</div>
-            <div class="role-value" id="valLoc">Bancă</div>
-            <div class="role-title">Rolul Tău:</div>
-            <div class="role-value" style="color: var(--accent); margin-bottom: 0;" id="valRole">Director</div>
-        </div>
-
-        <button class="btn" id="btnForceVote" style="margin-top: 30px; background: #334155;" onclick="triggerVote()">🔴 Acuză un Spion (Votează)</button>
-        
-        <!-- Lista de locații ajutătoare (Pentru Spion sunt butoane de ghicit, pt Inocenți sunt doar de referință) -->
-        <h3 style="margin-top: 30px; font-size: 1rem; color: var(--text-muted);">LOCAȚII POSIBILE</h3>
-        <div class="location-grid" id="locationsGrid"></div>
-    </div>
-
-    <!-- 4. ECRAN VOTARE -->
-    <div class="screen hidden" id="voteScreen">
-        <h2>CINE ESTE SPIONUL?</h2>
-        <p style="color: var(--text-muted); text-align: center; margin-bottom: 20px;">Toți trebuie să voteze. Alege cu grijă.</p>
-        <div class="panel" style="background: transparent; border: none; box-shadow: none; padding: 0;">
-            <div class="vote-grid" id="voteGrid">
-                <!-- Butoane cu jucători -->
+        <header class="chat-header">
+            <div class="header-info">
+                <div class="room-name">Grup Privat</div>
+                <div class="room-status" id="roomStatus">0 membri conectați</div>
             </div>
+            <div class="room-code-badge" title="Dă acest cod prietenilor tăi!" id="roomCodeDisplay">...</div>
+        </header>
+
+        <div class="messages-area" id="messagesArea">
+            <div class="msg-system">Acesta este începutul conversației. Mesajele sunt criptate end-to-end și nu se salvează nicăieri.</div>
+            <!-- Mesajele vor fi adăugate aici -->
         </div>
-        <p id="voteWaitText" style="color: var(--primary); font-weight: bold; margin-top: 20px; display: none;">Așteptăm restul voturilor...</p>
+
+        <footer class="chat-footer">
+            <textarea class="chat-input" id="msgInput" placeholder="Scrie un mesaj..." rows="1" oninput="autoGrow(this)" onkeypress="handleEnter(event)"></textarea>
+            <button class="btn-send" onclick="sendMessage()">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </footer>
+
     </div>
-
-    <!-- 5. REZULTATE -->
-    <div class="screen hidden" id="resultScreen">
-        <h1 id="resTitle" style="font-size: 2.5rem; margin-top: 20px;">SPIONUL A ÎNVINS!</h1>
-        <div class="panel">
-            <h3 style="color: var(--text-muted); margin-bottom: 10px;">SPIONUL A FOST:</h3>
-            <div style="font-size: 2rem; font-weight: 900; color: var(--primary); margin-bottom: 30px;" id="resSpyName">Nume Spion</div>
-            
-            <h3 style="color: var(--text-muted); margin-bottom: 10px;">LOCAȚIA REALĂ:</h3>
-            <div style="font-size: 1.5rem; font-weight: 800; color: white; margin-bottom: 30px;" id="resLocation">Baza Militară</div>
-
-            <p id="resReason" style="text-align: center; font-weight: 600; color: var(--text-muted); margin-bottom: 30px;">Spionul a ghicit locația corectă și a scăpat!</p>
-
-            <button class="btn" id="btnRestart" style="display: none;" onclick="restartGame()">Joacă din Nou</button>
-            <button class="btn btn-outline" id="btnWaitRestart" style="display: none;">Așteptăm gazda...</button>
-        </div>
-    </div>
-
 
     <script>
-        // --- BAZĂ DE DATE LOCAȚII ȘI ROLURI ---
-        const gameDB = {
-            "Bancă": ["Director", "Casier", "Paznic Armat", "Client Nemulțumit", "Manager Credite", "Contabil", "Hoț Sub Acoperire", "Curier"],
-            "Spital": ["Chirurg", "Asistentă Șefă", "Pacient", "Medic Rezident", "Director Spital", "Portar", "Anestezist", "Femeie de Serviciu"],
-            "Navă Spațială": ["Căpitan", "Inginer Șef", "Pilot", "Bucătar Cibernetic", "Cercetător Extraterestru", "Medic", "Turist Spațial", "Mecanic"],
-            "Submarin": ["Comandant", "Operator Sonar", "Mecanic", "Bucătar", "Scafandru", "Marinar", "Navigant", "Ofițer Torpile"],
-            "Restaurant": ["Bucătar Șef", "Ospătar", "Client Fidel", "Critic Culinar", "Somelier", "Spălător de Vase", "Patron", "Furnizor"],
-            "Bază Militară": ["General", "Soldat Recrut", "Lunetist", "Medic de Front", "Bucătar", "Inginer de Tancuri", "Pilot Elicopter", "Spion Inamic (Nu tu, altul)"],
-            "Teatru": ["Actor Principal", "Regizor", "Scenograf", "Spectator", "Sufleur", "Director", "Costumier", "Critic de Artă"],
-            "Circ": ["Clovn", "Acrobat", "Dresor de Lei", "Magician", "Spectator", "Vânzător de Popcorn", "Directorul Circului", "Femeia cu Barbă"],
-            "Școală": ["Director", "Profesor de Mate", "Elev Eminent", "Femeie de Serviciu", "Bibliotecar", "Părinte Supărat", "Elev Chiulangiu", "Profesor de Sport"],
-            "Secție de Poliție": ["Comisar", "Detectiv", "Polițist de Patrulă", "Suspect", "Avocat", "Victimă", "Criminalist", "Dispecer"],
-            "Avion de Pasageri": ["Pilot", "Copilot", "Stewardesă", "Pasager Clasa I", "Pasager Economic", "Șerif Aerian", "Mecanic (Pasager)", "Bebeluș Plângăcios (Rol greu)"],
-            "Cazinou": ["Crupier", "Șef de Sală", "Bouncer", "Jucător Profesionist", "Jucător Falit", "Trișor", "Barman", "Turist"]
-        };
-
-        const allLocations = Object.keys(gameDB);
-
-        // --- STARE GLOBALĂ REȚEA ---
+        // --- STARE GLOBALĂ ---
         let myName = "";
         let myId = "";
         let isHost = false;
-        let peer = null;
-        let hostConnection = null; // Client
-        let clientConnections = []; // Host
         
-        // --- STARE JOC GAZDĂ (SERVER) ---
-        let hostState = {
-            phase: 'LOBBY', // LOBBY, PLAYING, VOTING, RESULTS
-            players: [], // { id, name, isSpy, role, voteForId }
-            location: "",
-            spyId: "",
-            timer: 0,
-            winReason: "" // Explicatie castig
-        };
-        let hostTimerInterval = null;
+        let peer = null;
+        let hostConnection = null; // Pentru clienți
+        
+        // Host state (Doar dacă ești gazdă)
+        let clientConnections = []; // Lista conexiunilor la mine
+        let connectedUsers = []; // Lista obiectelor { id, name }
 
-        // --- STARE CLIENT LOCALĂ (CE VĂD EU) ---
-        let localState = {
-            phase: 'LOBBY',
-            timer: 0,
-            playersList: [], // Lista doar cu nume și id, FĂRĂ roluri
-            myRoleInfo: null, // { isSpy, location, role } - Dacă ești spion, location lipsește
-            results: null // Starea rezultatelor finale
+        // Referințe DOM
+        const UI = {
+            toast: document.getElementById('toastBox'),
+            messagesArea: document.getElementById('messagesArea'),
+            msgInput: document.getElementById('msgInput'),
+            roomStatus: document.getElementById('roomStatus'),
+            roomCodeDisplay: document.getElementById('roomCodeDisplay')
         };
 
-        // --- FUNCȚII UI DE BAZĂ ---
+        // --- FUNCȚII UI ---
         function switchScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
 
         function showToast(msg) {
-            const t = document.getElementById('toastBox');
-            t.innerText = msg; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3500);
+            UI.toast.innerText = msg; UI.toast.classList.add('show');
+            setTimeout(() => UI.toast.classList.remove('show'), 3000);
         }
 
-        function formatTime(seconds) {
-            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-            const s = (seconds % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
+        function autoGrow(element) {
+            element.style.height = "5px";
+            element.style.height = (element.scrollHeight) + "px";
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function getClockTime() {
+            const now = new Date();
+            return now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
         }
 
         function goToMenu() {
             const n = document.getElementById('playerName').value.trim();
-            if(n.length < 2) return showToast("Numele trebuie să aibă minim 2 litere!");
-            myName = n.substring(0, 15);
+            if(n.length < 2) return showToast("Introdu un nume valid!");
+            myName = n;
+            document.getElementById('welcomeSubtitle').innerText = "Salutare, " + myName + "!";
             switchScreen('menuScreen');
         }
 
         function generateId() { return Math.random().toString(36).substring(2, 7).toUpperCase(); }
 
-        // --- LOGICĂ GAZDĂ (HOST) ---
+        // --- SISTEM DE CHAT (UI RENDER) ---
+        function appendMessage(senderName, text, isMe) {
+            const time = getClockTime();
+            const alignClass = isMe ? 'me' : 'others';
+            
+            const msgHtml = `
+                <div class="msg-wrapper ${alignClass}">
+                    ${!isMe ? `<div class="msg-sender">${senderName}</div>` : ''}
+                    <div class="msg-bubble">
+                        ${text.replace(/\n/g, '<br>')}
+                        <span class="msg-time">${time}</span>
+                    </div>
+                </div>
+            `;
+            
+            UI.messagesArea.insertAdjacentHTML('beforeend', msgHtml);
+            UI.messagesArea.scrollTop = UI.messagesArea.scrollHeight; // Auto-scroll
+        }
+
+        function appendSystemMessage(text) {
+            const msgHtml = `<div class="msg-system">${text}</div>`;
+            UI.messagesArea.insertAdjacentHTML('beforeend', msgHtml);
+            UI.messagesArea.scrollTop = UI.messagesArea.scrollHeight;
+        }
+
+        // --- LOGICĂ GAZDĂ (SERVERUL GRUPULUI) ---
         function createRoom() {
             isHost = true;
             myId = generateId();
+            showToast("Se deschide camera...");
             
-            showToast("Se securizează camera...");
-            peer = new Peer("CMNSPY-" + myId);
+            peer = new Peer("CMNCHAT-" + myId);
 
             peer.on('open', (id) => {
-                switchScreen('lobbyScreen');
-                document.getElementById('lobbyCode').innerText = myId;
-                document.getElementById('btnStartGame').style.display = 'block';
-                document.getElementById('waitText').style.display = 'none';
-                
-                // Adaugă gazda
-                hostState.players.push({ id: myId, name: myName, isSpy: false, role: "", voteForId: null });
-                updateLocalClientStateFromHost(); // Gazda este si ea un client local
+                switchScreen('chatScreen');
+                UI.roomCodeDisplay.innerText = myId;
+                connectedUsers.push({ id: myId, name: myName });
+                updateRoomStatus();
             });
 
+            // Când cineva vrea să intre în grupul tău
             peer.on('connection', (conn) => {
-                if(hostState.phase !== 'LOBBY') { conn.send({ type: 'ERROR', msg: "Misiunea a început deja!" }); setTimeout(()=>conn.close(), 1000); return; }
-                if(hostState.players.length >= 8) { conn.send({ type: 'ERROR', msg: "Camera este plină (Max 8)!" }); setTimeout(()=>conn.close(), 1000); return; }
-
                 clientConnections.push(conn);
-                conn.on('data', (data) => handleDataAsHost(conn, data));
+                
+                conn.on('data', (data) => {
+                    if (data.type === 'JOIN') {
+                        // Un client nou a trimis numele lui
+                        connectedUsers.push({ id: conn.peer, name: data.name });
+                        updateRoomStatus();
+                        
+                        let sysMsg = `${data.name} s-a alăturat grupului.`;
+                        appendSystemMessage(sysMsg);
+                        
+                        // Trimitem tuturor (inclusiv noului venit) notificarea și lista actualizată
+                        broadcast({ type: 'SYSTEM', text: sysMsg });
+                        broadcast({ type: 'UPDATE_USERS', count: connectedUsers.length });
+                    }
+                    else if (data.type === 'CHAT') {
+                        // Un client a trimis un mesaj. Gazda îl afișează și îl trimite la toți ceilalți!
+                        appendMessage(data.sender, data.text, false);
+                        broadcast(data, conn.peer); // Transmite mai departe tuturor (exceptând pe cel care a trimis)
+                    }
+                });
+
                 conn.on('close', () => {
+                    // Cineva a părăsit grupul
                     clientConnections = clientConnections.filter(c => c !== conn);
-                    hostState.players = hostState.players.filter(p => p.id !== conn.peer);
-                    broadcastState();
+                    const user = connectedUsers.find(u => u.id === conn.peer);
+                    connectedUsers = connectedUsers.filter(u => u.id !== conn.peer);
+                    
+                    updateRoomStatus();
+                    
+                    if (user) {
+                        let sysMsg = `${user.name} a ieșit.`;
+                        appendSystemMessage(sysMsg);
+                        broadcast({ type: 'SYSTEM', text: sysMsg });
+                        broadcast({ type: 'UPDATE_USERS', count: connectedUsers.length });
+                    }
                 });
             });
         }
 
-        function handleDataAsHost(conn, data) {
-            const playerId = conn.peer;
-            let player = hostState.players.find(p => p.id === playerId);
-
-            if (data.type === 'JOIN') {
-                hostState.players.push({ id: playerId, name: data.name, isSpy: false, role: "", voteForId: null });
-                broadcastState();
-            }
-            else if (data.type === 'TRIGGER_VOTE' && hostState.phase === 'PLAYING') {
-                moveToVoting();
-            }
-            else if (data.type === 'SUBMIT_VOTE' && hostState.phase === 'VOTING') {
-                if(player) player.voteForId = data.voteId;
-                checkAllVotesSubmitted();
-            }
-            else if (data.type === 'SPY_GUESS' && hostState.phase === 'PLAYING') {
-                // Spionul a încercat să ghicească locația! Jocul se termină instant.
-                if(player && player.isSpy) {
-                    clearInterval(hostTimerInterval);
-                    if(data.guess === hostState.location) {
-                        hostState.winReason = "Spionul a riscat și a ghicit locația corectă!";
-                        finishGame(true); // Spion win
-                    } else {
-                        hostState.winReason = "Spionul a ghicit locația GRESIT!";
-                        finishGame(false); // Innocents win
-                    }
-                }
-            }
-        }
-
-        // CEA MAI IMPORTANTĂ FUNCȚIE: Trimite fiecărui client DOAR datele la care are voie să se uite.
-        function broadcastState() {
-            if(!isHost) return;
-            
-            // 1. Construim lista publica de jucatori (fara roluri)
-            let publicPlayers = hostState.players.map(p => ({ id: p.id, name: p.name, hasVoted: p.voteForId !== null }));
-
-            // 2. Trimitem personalizat fiecărui client
+        // Gazda trimite un pachet către toți clienții conectați
+        function broadcast(data, excludePeerId = null) {
             clientConnections.forEach(conn => {
-                let pInfo = hostState.players.find(p => p.id === conn.peer);
-                if(!pInfo) return;
-
-                let tailoredState = {
-                    phase: hostState.phase,
-                    timer: hostState.timer,
-                    playersList: publicPlayers,
-                    myRoleInfo: { isSpy: pInfo.isSpy, location: pInfo.isSpy ? null : hostState.location, role: pInfo.role },
-                    results: hostState.phase === 'RESULTS' ? { spyId: hostState.spyId, location: hostState.location, reason: hostState.winReason } : null
-                };
-                conn.send({ type: 'STATE', state: tailoredState });
-            });
-
-            // 3. Aplicăm și pentru clientul local al Gazdei
-            let hostPlayer = hostState.players.find(p => p.id === myId);
-            localState = {
-                phase: hostState.phase,
-                timer: hostState.timer,
-                playersList: publicPlayers,
-                myRoleInfo: { isSpy: hostPlayer.isSpy, location: hostPlayer.isSpy ? null : hostState.location, role: hostPlayer.role },
-                results: hostState.phase === 'RESULTS' ? { spyId: hostState.spyId, location: hostState.location, reason: hostState.winReason } : null
-            };
-            updateUIFromLocalState();
-        }
-
-        function startGame() {
-            if(hostState.players.length < 3) return showToast("Minim 3 jucători necesari pentru Spyfall!");
-            
-            // 1. Alege locația
-            hostState.location = allLocations[Math.floor(Math.random() * allLocations.length)];
-            let availableRoles = [...gameDB[hostState.location]].sort(() => 0.5 - Math.random());
-            
-            // 2. Alege Spionul
-            let spyIndex = Math.floor(Math.random() * hostState.players.length);
-            
-            // 3. Asignează Roluri
-            hostState.players.forEach((p, index) => {
-                p.voteForId = null;
-                if(index === spyIndex) {
-                    p.isSpy = true;
-                    p.role = "SPION";
-                    hostState.spyId = p.id;
-                } else {
-                    p.isSpy = false;
-                    p.role = availableRoles.pop() || "Cetățean"; // fallback
+                if (conn.peer !== excludePeerId && conn.open) {
+                    conn.send(data);
                 }
             });
-
-            hostState.phase = 'PLAYING';
-            hostState.timer = 300; // 5 Minute (300 sec)
-            broadcastState();
-
-            clearInterval(hostTimerInterval);
-            hostTimerInterval = setInterval(() => {
-                hostState.timer--;
-                broadcastState(); // Trimite timerul o data pe secunda
-
-                if(hostState.timer <= 0) {
-                    clearInterval(hostTimerInterval);
-                    moveToVoting();
-                }
-            }, 1000);
         }
 
-        function moveToVoting() {
-            clearInterval(hostTimerInterval);
-            hostState.phase = 'VOTING';
-            hostState.players.forEach(p => p.voteForId = null); // Reset voturi
-            broadcastState();
-        }
-
-        function checkAllVotesSubmitted() {
-            if(hostState.phase !== 'VOTING') return;
-            let missingVotes = hostState.players.filter(p => p.voteForId === null);
-            
-            if(missingVotes.length === 0) {
-                // Toti au votat. Calculăm.
-                let counts = {};
-                hostState.players.forEach(p => counts[p.id] = 0);
-                hostState.players.forEach(p => { counts[p.voteForId]++; });
-                
-                let maxVotes = Math.max(...Object.values(counts));
-                // Cine are cele mai multe voturi? Daca e egalitate, Spionul scapa!
-                let suspectedPlayers = Object.keys(counts).filter(id => counts[id] === maxVotes);
-
-                if(suspectedPlayers.length === 1 && suspectedPlayers[0] === hostState.spyId) {
-                    // Au prins Spionul!
-                    hostState.winReason = "Echipa l-a identificat corect pe SPION prin majoritate de voturi!";
-                    finishGame(false); // Inocenții castiga
-                } else {
-                    // Nu au prins spionul (au votat greșit sau a fost egalitate)
-                    hostState.winReason = suspectedPlayers.length > 1 ? "Echipa nu s-a putut pune de acord. Spionul a scăpat!" : "Echipa a arestat un inocent! Spionul a scăpat!";
-                    finishGame(true); // Spionul castiga
-                }
+        function updateRoomStatus() {
+            if(isHost) {
+                UI.roomStatus.innerText = `${connectedUsers.length} membri`;
             }
-        }
-
-        function finishGame(spyWins) {
-            hostState.phase = 'RESULTS';
-            hostState.winReason = (spyWins ? "SCOR: SPION WINS. " : "SCOR: INOCENȚI WINS. ") + hostState.winReason;
-            broadcastState();
-        }
-
-        function restartGame() {
-            if(!isHost) return;
-            hostState.phase = 'LOBBY';
-            hostState.players.forEach(p => { p.isSpy = false; p.role = ""; p.voteForId = null; });
-            broadcastState();
         }
 
         // --- LOGICĂ CLIENT (GUEST) ---
@@ -473,195 +357,65 @@
             const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
             if(code.length !== 5) return showToast("Cod invalid!");
 
-            showToast("Conectare securizată...");
+            showToast("Conectare...");
             peer = new Peer();
 
             peer.on('open', (id) => {
                 myId = id;
-                hostConnection = peer.connect("CMNSPY-" + code);
+                hostConnection = peer.connect("CMNCHAT-" + code);
                 
                 hostConnection.on('open', () => {
+                    switchScreen('chatScreen');
+                    UI.roomCodeDisplay.innerText = code;
+                    
+                    // Spune-i gazdei cine ești
                     hostConnection.send({ type: 'JOIN', name: myName });
                 });
 
                 hostConnection.on('data', (data) => {
-                    if(data.type === 'STATE') {
-                        localState = data.state;
-                        updateUIFromLocalState();
+                    if (data.type === 'CHAT') {
+                        appendMessage(data.sender, data.text, false);
                     }
-                    else if(data.type === 'ERROR') { showToast(data.msg); switchScreen('menuScreen'); }
+                    else if (data.type === 'SYSTEM') {
+                        appendSystemMessage(data.text);
+                    }
+                    else if (data.type === 'UPDATE_USERS') {
+                        UI.roomStatus.innerText = `${data.count} membri`;
+                    }
                 });
 
                 hostConnection.on('close', () => {
-                    showToast("Conexiune pierdută cu gazda.");
+                    showToast("Grupul a fost închis de către gazdă.");
                     switchScreen('menuScreen');
+                    UI.messagesArea.innerHTML = '<div class="msg-system">Acesta este începutul conversației. Mesajele sunt criptate end-to-end și nu se salvează nicăieri.</div>';
                 });
             });
         }
 
-        function sendToHost(data) {
-            if(isHost) handleDataAsHost({peer: myId}, data);
-            else if(hostConnection) hostConnection.send(data);
-        }
+        // --- TRIMITERE MESAJE ---
+        function sendMessage() {
+            const text = UI.msgInput.value.trim();
+            if(text === "") return;
 
-        // --- RANDARE UI PE BAZA STĂRII LOCALE ---
-        let currentScreenId = "";
+            // Afișăm pe ecranul nostru
+            appendMessage(myName, text, true);
 
-        function updateUIFromLocalState() {
-            
-            // LOBBY
-            if(localState.phase === 'LOBBY') {
-                if(currentScreenId !== 'lobbyScreen') switchScreen('lobbyScreen');
-                const list = document.getElementById('playerList');
-                list.innerHTML = "";
-                localState.playersList.forEach((p, idx) => {
-                    list.innerHTML += `<div class="player-item ${p.id === myId ? 'is-me' : ''}">
-                        <span>${idx+1}. ${p.name}</span>
-                        ${p.id === myId ? '<span>(Tu)</span>' : ''}
-                    </div>`;
-                });
+            // Construim pachetul de date
+            const dataPacket = { type: 'CHAT', sender: myName, text: text };
+
+            // Dacă sunt gazdă, trimit la toți clienții
+            if (isHost) {
+                broadcast(dataPacket);
+            } 
+            // Dacă sunt client, trimit la gazdă (iar ea va transmite la restul)
+            else if (hostConnection && hostConnection.open) {
+                hostConnection.send(dataPacket);
             }
 
-            // PLAYING
-            else if(localState.phase === 'PLAYING') {
-                if(currentScreenId !== 'gameScreen') {
-                    switchScreen('gameScreen');
-                    document.getElementById('roleCard').classList.add('hidden-role'); // Ascundem rolul la inceput
-                    renderRoleCard();
-                    renderLocationsGrid();
-                }
-                document.getElementById('gameTimer').innerText = formatTime(localState.timer);
-            }
-
-            // VOTING
-            else if(localState.phase === 'VOTING') {
-                if(currentScreenId !== 'voteScreen') {
-                    switchScreen('voteScreen');
-                    renderVotingGrid();
-                    document.getElementById('voteWaitText').style.display = 'none';
-                }
-            }
-
-            // RESULTS
-            else if(localState.phase === 'RESULTS') {
-                if(currentScreenId !== 'resultScreen') {
-                    switchScreen('resultScreen');
-                    renderResults();
-                }
-            }
-
-            currentScreenId = localState.phase === 'LOBBY' ? 'lobbyScreen' : 
-                              localState.phase === 'PLAYING' ? 'gameScreen' : 
-                              localState.phase === 'VOTING' ? 'voteScreen' : 'resultScreen';
-        }
-
-        // --- FUNCȚII AUXILIARE UI ---
-        
-        function renderRoleCard() {
-            const card = document.getElementById('roleCard');
-            const lblLoc = document.getElementById('lblLoc');
-            const valLoc = document.getElementById('valLoc');
-            const valRole = document.getElementById('valRole');
-
-            if(localState.myRoleInfo.isSpy) {
-                lblLoc.innerText = "Ești:";
-                valLoc.innerHTML = "<span class='spy-alert'>SPIONUL</span>";
-                valRole.innerText = "Află unde se ascund ceilalți!";
-                valRole.style.color = "var(--text-muted)";
-            } else {
-                lblLoc.innerText = "Locația Curentă:";
-                valLoc.innerHTML = localState.myRoleInfo.location;
-                valRole.innerText = localState.myRoleInfo.role;
-                valRole.style.color = "var(--accent)";
-            }
-        }
-
-        function toggleRoleVisibility() {
-            document.getElementById('roleCard').classList.toggle('hidden-role');
-        }
-
-        function renderLocationsGrid() {
-            const grid = document.getElementById('locationsGrid');
-            grid.innerHTML = "";
-            let isSpy = localState.myRoleInfo.isSpy;
-
-            allLocations.sort().forEach(loc => {
-                let btn = document.createElement('button');
-                btn.className = 'loc-btn' + (isSpy ? ' spy-mode' : '');
-                btn.innerText = loc;
-                
-                if(isSpy) {
-                    btn.onclick = () => {
-                        if(confirm(`Ești sigur că vrei să ghicești locația: ${loc}? Jocul se va termina!`)) {
-                            sendToHost({ type: 'SPY_GUESS', guess: loc });
-                        }
-                    };
-                } else {
-                    // Dacă e inocent, butoanele doar se taie cand apesi pe ele pt deducție vizuală
-                    btn.onclick = () => {
-                        btn.style.textDecoration = btn.style.textDecoration === 'line-through' ? 'none' : 'line-through';
-                        btn.style.opacity = btn.style.opacity === '0.3' ? '1' : '0.3';
-                    };
-                }
-                grid.appendChild(btn);
-            });
-        }
-
-        function triggerVote() {
-            if(confirm("Vrei să oprești timpul și să chemi pe toată lumea la vot?")) {
-                sendToHost({ type: 'TRIGGER_VOTE' });
-            }
-        }
-
-        function renderVotingGrid() {
-            const grid = document.getElementById('voteGrid');
-            grid.innerHTML = "";
-
-            localState.playersList.forEach(p => {
-                let btn = document.createElement('button');
-                btn.className = 'vote-btn';
-                btn.innerText = p.name + (p.id === myId ? " (Tu)" : "");
-                
-                btn.onclick = () => {
-                    if(!confirm(`Votezi că ${p.name} este spionul?`)) return;
-                    
-                    document.querySelectorAll('.vote-btn').forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
-                    
-                    document.getElementById('voteWaitText').style.display = 'block';
-                    grid.style.pointerEvents = 'none'; // Blocheaza dublul vot
-                    grid.style.opacity = '0.5';
-                    
-                    sendToHost({ type: 'SUBMIT_VOTE', voteId: p.id });
-                };
-                grid.appendChild(btn);
-            });
-        }
-
-        function renderResults() {
-            const res = localState.results;
-            const spyName = localState.playersList.find(p => p.id === res.spyId)?.name || "Necunoscut";
-            
-            document.getElementById('resSpyName').innerText = spyName;
-            document.getElementById('resLocation').innerText = res.location;
-            
-            const isSpyWin = res.reason.includes("SPION WINS");
-            document.getElementById('resTitle').innerText = isSpyWin ? "SPIONUL A ÎNVINS!" : "INOCENȚII AU ÎNVINS!";
-            document.getElementById('resTitle').style.color = isSpyWin ? "var(--primary)" : "var(--accent)";
-            
-            document.getElementById('resReason').innerText = res.reason.replace("SCOR: SPION WINS. ", "").replace("SCOR: INOCENȚI WINS. ", "");
-
-            if(isHost) {
-                document.getElementById('btnRestart').style.display = 'block';
-                document.getElementById('btnWaitRestart').style.display = 'none';
-            } else {
-                document.getElementById('btnRestart').style.display = 'none';
-                document.getElementById('btnWaitRestart').style.display = 'block';
-            }
-
-            // Resetăm interfața de vot pt runda viitoare
-            document.getElementById('voteGrid').style.pointerEvents = 'all';
-            document.getElementById('voteGrid').style.opacity = '1';
+            // Resetăm input-ul
+            UI.msgInput.value = "";
+            UI.msgInput.style.height = "50px"; // Inaltimea default
+            UI.msgInput.focus();
         }
 
     </script>

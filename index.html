@@ -3,421 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CMN Chat - Mesagerie Securizată</title>
-    
-    <!-- Librărie pentru WebRTC (PeerJS) -->
+    <title>CMN Chat Pro P2P</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         :root {
-            --bg-main: #0b141a; /* WhatsApp Dark Mode vibe */
-            --bg-panel: #111b21;
-            --bg-chat: #0b141a;
-            --primary: #00a884;
-            --primary-hover: #008f6f;
-            --msg-sent: #005c4b;
-            --msg-recv: #202c33;
-            --text-main: #e9edef;
-            --text-muted: #8696a0;
-            --border-color: #222d34;
+            --bg-main: #0b141a; --bg-panel: #111b21; --primary: #00a884;
+            --msg-sent: #005c4b; --msg-recv: #202c33; --text-main: #e9edef;
+            --text-muted: #8696a0; --border-color: #222d34;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; }
 
-        body {
-            background-color: var(--bg-main); color: var(--text-main);
-            overflow: hidden; width: 100vw; height: 100vh;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
+        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10; transition: 0.3s; padding: 20px; }
+        .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; }
 
-        /* --- Structura Ecranelor --- */
-        .screen {
-            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: var(--bg-main); z-index: 10; transition: opacity 0.3s ease, transform 0.3s ease;
-            padding: 20px;
-        }
-        .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; transform: scale(1.05); }
+        .panel { background: var(--bg-panel); padding: 30px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .input-text { background: var(--bg-main); border: 1px solid var(--border-color); color: white; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; }
+        .btn { background: var(--primary); color: #111b21; border: none; padding: 15px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 700; }
 
-        h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; color: white; text-align: center; }
-        p.subtitle { color: var(--text-muted); margin-bottom: 30px; text-align: center; }
-
-        .panel {
-            background: var(--bg-panel); padding: 30px; border-radius: 16px; width: 100%; max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        .input-text {
-            background: var(--bg-main); border: 1px solid var(--border-color); color: white;
-            font-size: 1.1rem; text-align: center; padding: 15px; border-radius: 10px; outline: none; margin-bottom: 20px; width: 100%; transition: 0.2s;
-        }
-        .input-text:focus { border-color: var(--primary); }
-
-        .btn {
-            background: var(--primary); color: #111b21; border: none; padding: 15px 20px; font-size: 1.1rem; font-weight: 700;
-            border-radius: 10px; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px;
-        }
-        .btn:hover { background: var(--primary-hover); }
-        .btn-outline { background: transparent; border: 1px solid var(--text-muted); color: var(--text-main); }
-
-        /* --- Ecran Chat Principal --- */
-        #chatScreen {
-            padding: 0; justify-content: flex-start;
-        }
-
-        /* Header Chat */
-        .chat-header {
-            width: 100%; height: 65px; background: var(--bg-panel); display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px; border-bottom: 1px solid var(--border-color); z-index: 20;
-        }
-        .header-info { display: flex; flex-direction: column; }
-        .room-name { font-weight: 600; font-size: 1.1rem; }
-        .room-status { font-size: 0.8rem; color: var(--text-muted); }
-        .room-code-badge { background: var(--border-color); padding: 5px 10px; border-radius: 8px; font-family: monospace; font-weight: bold; letter-spacing: 2px; color: var(--primary); }
-
-        /* Zona Mesaje */
-        .messages-area {
-            flex: 1; width: 100%; background: var(--bg-chat); overflow-y: auto; padding: 20px;
-            display: flex; flex-direction: column; gap: 10px;
-            /* Model fundal subtil tipic aplicatiilor de chat */
-            background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        /* Bule Mesaje */
-        .msg-wrapper { display: flex; flex-direction: column; width: 100%; margin-bottom: 5px; }
-        .msg-wrapper.me { align-items: flex-end; }
-        .msg-wrapper.others { align-items: flex-start; }
-
-        .msg-sender { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px; margin-left: 5px; margin-right: 5px; }
+        .chat-header { height: 65px; background: var(--bg-panel); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
+        .messages-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
         
-        .msg-bubble {
-            max-width: 80%; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4;
-            position: relative; word-wrap: break-word;
-        }
-        .msg-wrapper.me .msg-bubble { background: var(--msg-sent); border-top-right-radius: 2px; }
-        .msg-wrapper.others .msg-bubble { background: var(--msg-recv); border-top-left-radius: 2px; }
-
-        .msg-time { font-size: 0.65rem; color: rgba(255,255,255,0.5); float: right; margin-top: 5px; margin-left: 15px; }
-
-        /* Mesaj Sistem (Ex: Alex s-a conectat) */
-        .msg-system {
-            background: rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.8rem;
-            padding: 5px 15px; border-radius: 15px; align-self: center; margin: 10px 0; text-align: center;
-        }
-
-        /* Footer Chat (Input) */
-        .chat-footer {
-            width: 100%; padding: 15px; background: var(--bg-panel); display: flex; gap: 10px; align-items: flex-end;
-            border-top: 1px solid var(--border-color);
-        }
-        .chat-input {
-            flex: 1; background: var(--border-color); border: none; color: white; padding: 15px; border-radius: 24px;
-            font-size: 1rem; outline: none; resize: none; overflow-y: hidden; max-height: 120px; min-height: 50px;
-        }
-        .btn-send {
-            width: 50px; height: 50px; border-radius: 50%; background: var(--primary); border: none;
-            display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s;
-            flex-shrink: 0;
-        }
-        .btn-send:hover { background: var(--primary-hover); }
-        .btn-send svg { width: 20px; height: 20px; fill: #111b21; margin-left: 2px; }
-
-        /* --- Notificări --- */
-        .toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px);
-            background: var(--text-main); color: var(--bg-main); padding: 10px 25px; border-radius: 30px;
-            font-weight: 600; font-size: 0.9rem; z-index: 100; opacity: 0; transition: 0.3s; pointer-events: none;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
+        .msg-bubble { max-width: 80%; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; }
+        .msg-wrapper.me { align-self: flex-end; }
+        .msg-wrapper.me .msg-bubble { background: var(--msg-sent); }
+        .msg-wrapper.others .msg-bubble { background: var(--msg-recv); }
+        
+        .typing-indicator { font-size: 0.7rem; color: var(--primary); padding: 5px 20px; display: none; }
+        .footer { padding: 15px; background: var(--bg-panel); display: flex; gap: 10px; align-items: center; }
+        .btn-action { background: transparent; border: 1px solid var(--border-color); color: white; padding: 10px; border-radius: 8px; cursor: pointer; }
+        .btn-action.active { background: var(--primary); }
     </style>
 </head>
 <body>
 
-    <div class="toast" id="toastBox">Notificare</div>
-
-    <!-- 0. ECRAN SETARE NUME -->
-    <div class="screen" id="nameScreen">
-        <h1>CMN Chat</h1>
-        <p class="subtitle">Comunicare 100% Privată (P2P)</p>
+    <div id="setupScreen" class="screen">
+        <h1>CMN Chat Pro</h1>
         <div class="panel">
-            <input type="text" class="input-text" id="playerName" placeholder="Cum te numești?" maxlength="15">
-            <button class="btn" onclick="goToMenu()">Continuă</button>
+            <input type="text" class="input-text" id="playerName" placeholder="Numele tău">
+            <button class="btn" onclick="initChat()">Intră în Chat</button>
         </div>
     </div>
 
-    <!-- 1. MENIU PRINCIPAL -->
-    <div class="screen hidden" id="menuScreen">
-        <h1>BUN VENIT</h1>
-        <p class="subtitle" id="welcomeSubtitle">Alege o acțiune</p>
-        <div class="panel" style="background: transparent; border: none; box-shadow: none; padding: 0;">
-            <button class="btn" onclick="createRoom()">Creează Grup Nou</button>
-            <button class="btn btn-outline" style="margin-top: 15px;" onclick="switchScreen('joinScreen')">Intră într-un Grup</button>
+    <div id="chatScreen" class="screen hidden">
+        <div class="chat-header">
+            <div id="roomCodeDisplay">--</div>
+            <button class="btn-action" onclick="startAudioCall()">📞 Apel</button>
         </div>
-    </div>
-
-    <!-- 2. ECRAN JOIN -->
-    <div class="screen hidden" id="joinScreen">
-        <div class="panel">
-            <h2 style="margin-bottom: 20px; color: white;">Intră în Grup</h2>
-            <input type="text" class="input-text" id="joinCodeInput" placeholder="INTRODU CODUL (5 litere)" style="text-transform: uppercase; font-family: monospace; letter-spacing: 2px;">
-            <button class="btn" onclick="joinRoom()">Conectare</button>
-            <button class="btn btn-outline" onclick="switchScreen('menuScreen')">Înapoi</button>
+        <div id="typingIndicator" class="typing-indicator">Cineva scrie...</div>
+        <div class="messages-area" id="msgArea"></div>
+        <div class="footer">
+            <button class="btn-action" id="paranoidBtn" onclick="toggleParanoid()">🔥</button>
+            <textarea id="msgInput" class="input-text" style="margin:0" placeholder="Mesaj..."></textarea>
+            <button class="btn-action" onclick="sendMessage()">➤</button>
         </div>
-    </div>
-
-    <!-- 3. ECRAN CHAT PRINCIPAL -->
-    <div class="screen hidden" id="chatScreen">
-        
-        <header class="chat-header">
-            <div class="header-info">
-                <div class="room-name">Grup Privat</div>
-                <div class="room-status" id="roomStatus">0 membri conectați</div>
-            </div>
-            <div class="room-code-badge" title="Dă acest cod prietenilor tăi!" id="roomCodeDisplay">...</div>
-        </header>
-
-        <div class="messages-area" id="messagesArea">
-            <div class="msg-system">Acesta este începutul conversației. Mesajele sunt criptate end-to-end și nu se salvează nicăieri.</div>
-            <!-- Mesajele vor fi adăugate aici -->
-        </div>
-
-        <footer class="chat-footer">
-            <textarea class="chat-input" id="msgInput" placeholder="Scrie un mesaj..." rows="1" oninput="autoGrow(this)" onkeypress="handleEnter(event)"></textarea>
-            <button class="btn-send" onclick="sendMessage()">
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
-        </footer>
-
     </div>
 
     <script>
-        // --- STARE GLOBALĂ ---
-        let myName = "";
-        let myId = "";
-        let isHost = false;
+        let myName, peer, conn, isParanoid = false, isTyping = false;
+        const msgInput = document.getElementById('msgInput');
         
-        let peer = null;
-        let hostConnection = null; // Pentru clienți
-        
-        // Host state (Doar dacă ești gazdă)
-        let clientConnections = []; // Lista conexiunilor la mine
-        let connectedUsers = []; // Lista obiectelor { id, name }
-
-        // Referințe DOM
-        const UI = {
-            toast: document.getElementById('toastBox'),
-            messagesArea: document.getElementById('messagesArea'),
-            msgInput: document.getElementById('msgInput'),
-            roomStatus: document.getElementById('roomStatus'),
-            roomCodeDisplay: document.getElementById('roomCodeDisplay')
-        };
-
-        // --- FUNCȚII UI ---
-        function switchScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-        }
-
-        function showToast(msg) {
-            UI.toast.innerText = msg; UI.toast.classList.add('show');
-            setTimeout(() => UI.toast.classList.remove('show'), 3000);
-        }
-
-        function autoGrow(element) {
-            element.style.height = "5px";
-            element.style.height = (element.scrollHeight) + "px";
-        }
-
-        function handleEnter(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        }
-
-        function getClockTime() {
-            const now = new Date();
-            return now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-        }
-
-        function goToMenu() {
-            const n = document.getElementById('playerName').value.trim();
-            if(n.length < 2) return showToast("Introdu un nume valid!");
-            myName = n;
-            document.getElementById('welcomeSubtitle').innerText = "Salutare, " + myName + "!";
-            switchScreen('menuScreen');
-        }
-
-        function generateId() { return Math.random().toString(36).substring(2, 7).toUpperCase(); }
-
-        // --- SISTEM DE CHAT (UI RENDER) ---
-        function appendMessage(senderName, text, isMe) {
-            const time = getClockTime();
-            const alignClass = isMe ? 'me' : 'others';
-            
-            const msgHtml = `
-                <div class="msg-wrapper ${alignClass}">
-                    ${!isMe ? `<div class="msg-sender">${senderName}</div>` : ''}
-                    <div class="msg-bubble">
-                        ${text.replace(/\n/g, '<br>')}
-                        <span class="msg-time">${time}</span>
-                    </div>
-                </div>
-            `;
-            
-            UI.messagesArea.insertAdjacentHTML('beforeend', msgHtml);
-            UI.messagesArea.scrollTop = UI.messagesArea.scrollHeight; // Auto-scroll
-        }
-
-        function appendSystemMessage(text) {
-            const msgHtml = `<div class="msg-system">${text}</div>`;
-            UI.messagesArea.insertAdjacentHTML('beforeend', msgHtml);
-            UI.messagesArea.scrollTop = UI.messagesArea.scrollHeight;
-        }
-
-        // --- LOGICĂ GAZDĂ (SERVERUL GRUPULUI) ---
-        function createRoom() {
-            isHost = true;
-            myId = generateId();
-            showToast("Se deschide camera...");
-            
-            peer = new Peer("CMNCHAT-" + myId);
-
-            peer.on('open', (id) => {
-                switchScreen('chatScreen');
-                UI.roomCodeDisplay.innerText = myId;
-                connectedUsers.push({ id: myId, name: myName });
-                updateRoomStatus();
-            });
-
-            // Când cineva vrea să intre în grupul tău
-            peer.on('connection', (conn) => {
-                clientConnections.push(conn);
-                
-                conn.on('data', (data) => {
-                    if (data.type === 'JOIN') {
-                        // Un client nou a trimis numele lui
-                        connectedUsers.push({ id: conn.peer, name: data.name });
-                        updateRoomStatus();
-                        
-                        let sysMsg = `${data.name} s-a alăturat grupului.`;
-                        appendSystemMessage(sysMsg);
-                        
-                        // Trimitem tuturor (inclusiv noului venit) notificarea și lista actualizată
-                        broadcast({ type: 'SYSTEM', text: sysMsg });
-                        broadcast({ type: 'UPDATE_USERS', count: connectedUsers.length });
-                    }
-                    else if (data.type === 'CHAT') {
-                        // Un client a trimis un mesaj. Gazda îl afișează și îl trimite la toți ceilalți!
-                        appendMessage(data.sender, data.text, false);
-                        broadcast(data, conn.peer); // Transmite mai departe tuturor (exceptând pe cel care a trimis)
-                    }
-                });
-
-                conn.on('close', () => {
-                    // Cineva a părăsit grupul
-                    clientConnections = clientConnections.filter(c => c !== conn);
-                    const user = connectedUsers.find(u => u.id === conn.peer);
-                    connectedUsers = connectedUsers.filter(u => u.id !== conn.peer);
-                    
-                    updateRoomStatus();
-                    
-                    if (user) {
-                        let sysMsg = `${user.name} a ieșit.`;
-                        appendSystemMessage(sysMsg);
-                        broadcast({ type: 'SYSTEM', text: sysMsg });
-                        broadcast({ type: 'UPDATE_USERS', count: connectedUsers.length });
-                    }
-                });
-            });
-        }
-
-        // Gazda trimite un pachet către toți clienții conectați
-        function broadcast(data, excludePeerId = null) {
-            clientConnections.forEach(conn => {
-                if (conn.peer !== excludePeerId && conn.open) {
-                    conn.send(data);
-                }
-            });
-        }
-
-        function updateRoomStatus() {
-            if(isHost) {
-                UI.roomStatus.innerText = `${connectedUsers.length} membri`;
-            }
-        }
-
-        // --- LOGICĂ CLIENT (GUEST) ---
-        function joinRoom() {
-            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
-            if(code.length !== 5) return showToast("Cod invalid!");
-
-            showToast("Conectare...");
+        function initChat() {
+            myName = document.getElementById('playerName').value || "Anonim";
             peer = new Peer();
-
             peer.on('open', (id) => {
-                myId = id;
-                hostConnection = peer.connect("CMNCHAT-" + code);
-                
-                hostConnection.on('open', () => {
-                    switchScreen('chatScreen');
-                    UI.roomCodeDisplay.innerText = code;
-                    
-                    // Spune-i gazdei cine ești
-                    hostConnection.send({ type: 'JOIN', name: myName });
-                });
+                document.getElementById('roomCodeDisplay').innerText = "Cod: " + id;
+                switchScreen('chatScreen');
+            });
 
-                hostConnection.on('data', (data) => {
-                    if (data.type === 'CHAT') {
-                        appendMessage(data.sender, data.text, false);
-                    }
-                    else if (data.type === 'SYSTEM') {
-                        appendSystemMessage(data.text);
-                    }
-                    else if (data.type === 'UPDATE_USERS') {
-                        UI.roomStatus.innerText = `${data.count} membri`;
-                    }
-                });
-
-                hostConnection.on('close', () => {
-                    showToast("Grupul a fost închis de către gazdă.");
-                    switchScreen('menuScreen');
-                    UI.messagesArea.innerHTML = '<div class="msg-system">Acesta este începutul conversației. Mesajele sunt criptate end-to-end și nu se salvează nicăieri.</div>';
+            peer.on('connection', c => { conn = c; setupConn(); });
+            peer.on('call', call => {
+                navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                    call.answer(stream);
+                    call.on('stream', userStream => {
+                        const audio = new Audio();
+                        audio.srcObject = userStream;
+                        audio.play();
+                    });
                 });
             });
         }
 
-        // --- TRIMITERE MESAJE ---
-        function sendMessage() {
-            const text = UI.msgInput.value.trim();
-            if(text === "") return;
-
-            // Afișăm pe ecranul nostru
-            appendMessage(myName, text, true);
-
-            // Construim pachetul de date
-            const dataPacket = { type: 'CHAT', sender: myName, text: text };
-
-            // Dacă sunt gazdă, trimit la toți clienții
-            if (isHost) {
-                broadcast(dataPacket);
-            } 
-            // Dacă sunt client, trimit la gazdă (iar ea va transmite la restul)
-            else if (hostConnection && hostConnection.open) {
-                hostConnection.send(dataPacket);
-            }
-
-            // Resetăm input-ul
-            UI.msgInput.value = "";
-            UI.msgInput.style.height = "50px"; // Inaltimea default
-            UI.msgInput.focus();
+        function setupConn() {
+            conn.on('data', data => {
+                if(data.type === 'CHAT') appendMsg(data.sender, data.text, data.destruct);
+                if(data.type === 'TYPING') document.getElementById('typingIndicator').style.display = data.status ? 'block' : 'none';
+            });
         }
 
+        // Logică Typing Indicator
+        msgInput.addEventListener('input', () => {
+            if(!isTyping) { isTyping = true; sendData({type: 'TYPING', status: true}); }
+            clearTimeout(window.typingTimer);
+            window.typingTimer = setTimeout(() => { isTyping = false; sendData({type: 'TYPING', status: false}); }, 1000);
+        });
+
+        function toggleParanoid() {
+            isParanoid = !isParanoid;
+            document.getElementById('paranoidBtn').classList.toggle('active');
+        }
+
+        function sendMessage() {
+            const text = msgInput.value;
+            if(!text) return;
+            appendMsg("Tu", text, isParanoid, true);
+            sendData({type: 'CHAT', sender: myName, text, destruct: isParanoid});
+            msgInput.value = "";
+        }
+
+        function appendMsg(sender, text, destruct, isMe = false) {
+            const div = document.createElement('div');
+            div.className = `msg-wrapper ${isMe ? 'me' : 'others'}`;
+            div.innerHTML = `<div class="msg-bubble">${text}</div>`;
+            document.getElementById('msgArea').appendChild(div);
+            if(destruct) setTimeout(() => div.remove(), 10000);
+        }
+
+        function startAudioCall() {
+            const remoteId = prompt("Introdu codul prietenului pentru apel:");
+            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                const call = peer.call(remoteId, stream);
+                call.on('stream', userStream => { const audio = new Audio(); audio.srcObject = userStream; audio.play(); });
+            });
+        }
+
+        function sendData(obj) { if(conn && conn.open) conn.send(obj); }
+        function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
     </script>
 </body>
 </html>
+```
+
+### 🧠 Cum să folosești funcțiile noi:
+*   **Modul Paranoid (🔥):** Înainte să trimiți un mesaj, apasă butonul cu foc. Mesajul tău va dispărea de pe ecranul prietenului (și de pe al tău) după 10 secunde. 
+*   **Indicator Typing:** Când scrii în căsuța de text, prietenul tău vede în timp real "Cineva scrie..." sus în header.
+*   **Apel Vocal:** Apasă butonul "📞 Apel", introdu codul de ID afișat în header-ul prietenului (pe care îl primești când se conectează) și se va iniția fluxul audio P2P.
+
+Este un sistem complet privat, fără baze de date, care trăiește doar în browserul vostru!

@@ -1,142 +1,554 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CMN Chat Pro P2P</title>
+    <title>P2P Nexus Chat</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
+        /* === CSS Variables & Theming === */
         :root {
-            --bg-main: #0b141a; --bg-panel: #111b21; --primary: #00a884;
-            --msg-sent: #005c4b; --msg-recv: #202c33; --text-main: #e9edef;
-            --text-muted: #8696a0; --border-color: #222d34;
+            --bg-color: #0d1117;
+            --glass-bg: rgba(22, 27, 34, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: #58a6ff;
+            --primary-hover: #1f6feb;
+            --danger: #ff4757;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --msg-sent: #1f6feb;
+            --msg-recv: #21262d;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; }
 
-        .screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-main); z-index: 10; transition: 0.3s; padding: 20px; }
-        .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; }
+        /* === Reset & Base Styles === */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        .panel { background: var(--bg-panel); padding: 30px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .input-text { background: var(--bg-main); border: 1px solid var(--border-color); color: white; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; }
-        .btn { background: var(--primary); color: #111b21; border: none; padding: 15px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 700; }
+        /* === Glassmorphism Utilities === */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
 
-        .chat-header { height: 65px; background: var(--bg-panel); display: flex; align-items: center; padding: 0 20px; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
-        .messages-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        /* === Lobby System UI === */
+        #lobby-screen {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100%; padding: 20px; z-index: 10;
+        }
+        .lobby-card {
+            width: 100%; max-width: 400px; padding: 30px; border-radius: 16px;
+            display: flex; flex-direction: column; gap: 20px; text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.5s ease-out;
+        }
+        .lobby-card h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 10px; }
+        input[type="text"] {
+            width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--glass-border);
+            background: rgba(0,0,0,0.3); color: white; font-size: 1rem; outline: none; transition: border 0.3s;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+        .btn {
+            padding: 12px; border-radius: 8px; border: none; font-size: 1rem; font-weight: bold;
+            cursor: pointer; transition: all 0.2s; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        .btn-secondary { background: var(--glass-bg); border: 1px solid var(--glass-border); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+        .divider { display: flex; align-items: center; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--glass-border); margin: 0 10px; }
+
+        /* === Chat Interface UI === */
+        #chat-screen { display: none; flex-direction: column; height: 100%; animation: slideUp 0.4s ease-out; }
         
-        .msg-bubble { max-width: 80%; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; }
-        .msg-wrapper.me { align-self: flex-end; }
-        .msg-wrapper.me .msg-bubble { background: var(--msg-sent); }
-        .msg-wrapper.others .msg-bubble { background: var(--msg-recv); }
+        .header {
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--glass-border); z-index: 5;
+        }
+        .header-info h2 { font-size: 1.2rem; letter-spacing: 1px; }
+        .header-info p { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
         
-        .typing-indicator { font-size: 0.7rem; color: var(--primary); padding: 5px 20px; display: none; }
-        .footer { padding: 15px; background: var(--bg-panel); display: flex; gap: 10px; align-items: center; }
-        .btn-action { background: transparent; border: 1px solid var(--border-color); color: white; padding: 10px; border-radius: 8px; cursor: pointer; }
-        .btn-action.active { background: var(--primary); }
+        .messages-container {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
+            scroll-behavior: smooth;
+        }
+
+        /* Chat Bubbles */
+        .message { max-width: 80%; padding: 10px 14px; border-radius: 12px; position: relative; word-wrap: break-word; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .message .sender { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block; }
+        .msg-sent { align-self: flex-end; background: var(--msg-sent); border-bottom-right-radius: 2px; }
+        .msg-sent .sender { display: none; }
+        .msg-recv { align-self: flex-start; background: var(--msg-recv); border-bottom-left-radius: 2px; border: 1px solid var(--glass-border); }
+        .msg-system { align-self: center; background: transparent; color: var(--text-muted); font-size: 0.8rem; font-style: italic; border: none; padding: 5px; animation: fadeIn 0.5s ease; }
+
+        /* Paranoid Mode Animations */
+        .paranoid-msg { overflow: hidden; border: 1px solid var(--danger); }
+        .paranoid-msg::after {
+            content: ''; position: absolute; bottom: 0; left: 0; height: 3px; background: var(--danger);
+            width: 100%; animation: burnTimer 10s linear forwards;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 15px; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: flex-end;
+            background: var(--bg-color); z-index: 5;
+        }
+        textarea {
+            flex: 1; max-height: 120px; min-height: 44px; padding: 12px; border-radius: 20px;
+            border: 1px solid var(--glass-border); background: var(--glass-bg); color: white;
+            font-size: 1rem; resize: none; outline: none; overflow-y: auto; line-height: 1.4;
+        }
+        .icon-btn {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%;
+            width: 44px; height: 44px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: 0.2s; color: var(--text-muted); flex-shrink: 0;
+        }
+        .icon-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .icon-btn.active.flame { color: var(--danger); border-color: var(--danger); box-shadow: 0 0 10px rgba(255, 71, 87, 0.4); }
+        .icon-btn.active.mic { color: #2ed573; border-color: #2ed573; box-shadow: 0 0 10px rgba(46, 213, 115, 0.4); }
+        .send-btn { background: var(--primary); color: white; border: none; }
+        .send-btn:hover { background: var(--primary-hover); }
+
+        /* Typing Indicator */
+        #typing-indicator {
+            padding: 0 20px 10px; font-size: 0.8rem; color: var(--text-muted); font-style: italic;
+            min-height: 25px; opacity: 0; transition: opacity 0.3s;
+        }
+
+        /* SVG Icons Styling */
+        svg { width: 20px; height: 20px; fill: currentColor; }
+
+        /* Notifications & Errors */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--danger);
+            color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; z-index: 100;
+            display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes burnTimer { from { width: 100%; } to { width: 0%; } }
     </style>
 </head>
 <body>
 
-    <div id="setupScreen" class="screen">
-        <h1>CMN Chat Pro</h1>
-        <div class="panel">
-            <input type="text" class="input-text" id="playerName" placeholder="Numele tău">
-            <button class="btn" onclick="initChat()">Intră în Chat</button>
+    <div id="toast"></div>
+
+    <div id="lobby-screen">
+        <div class="lobby-card glass">
+            <h1>P2P Nexus</h1>
+            <input type="text" id="username" placeholder="Enter your display name" maxlength="20">
+            
+            <button class="btn btn-primary" onclick="app.hostRoom()">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                Host a New Room
+            </button>
+            
+            <div class="divider">OR</div>
+            
+            <input type="text" id="room-code" placeholder="Enter 5-letter Room Code" maxlength="5" style="text-transform: uppercase;">
+            <button class="btn btn-secondary" onclick="app.joinRoom()">
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                Join Existing Room
+            </button>
         </div>
     </div>
 
-    <div id="chatScreen" class="screen hidden">
-        <div class="chat-header">
-            <div id="roomCodeDisplay">--</div>
-            <button class="btn-action" onclick="startAudioCall()">📞 Apel</button>
+    <div id="chat-screen">
+        <div class="header glass">
+            <div class="header-info">
+                <h2>Room: <span id="display-room-code" style="color: var(--primary);">---</span></h2>
+                <p id="participant-count">1 participant</p>
+            </div>
+            <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.8rem;" onclick="location.reload()">Leave</button>
         </div>
-        <div id="typingIndicator" class="typing-indicator">Cineva scrie...</div>
-        <div class="messages-area" id="msgArea"></div>
-        <div class="footer">
-            <button class="btn-action" id="paranoidBtn" onclick="toggleParanoid()">🔥</button>
-            <textarea id="msgInput" class="input-text" style="margin:0" placeholder="Mesaj..."></textarea>
-            <button class="btn-action" onclick="sendMessage()">➤</button>
+
+        <div class="messages-container" id="messages">
+            </div>
+
+        <div id="typing-indicator">Someone is typing...</div>
+
+        <div class="input-area glass">
+            <button class="icon-btn mic" id="btn-mic" onclick="app.toggleAudio()" title="Toggle Walkie-Talkie">
+                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+            </button>
+            
+            <button class="icon-btn flame" id="btn-paranoid" onclick="app.toggleParanoid()" title="Paranoid Mode (10s Auto-destruct)">
+                <svg viewBox="0 0 24 24"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13.08 3.23 12.24 3.75 11.46 4.32C8.87 6.22 7.71 9.89 8.73 13.05C8.83 13.36 8.71 13.72 8.43 13.88C8.16 14.04 7.82 14.01 7.58 13.8C6.67 13 6.09 11.85 5.86 10.6C5.07 11.96 4.8 13.68 5.25 15.22C5.95 17.63 7.85 19.64 10.28 20.48C13.06 21.43 16.32 20.84 18.27 18.57C19.86 16.73 20.08 13.85 18.72 11.83C18.42 11.58 18.06 11.41 17.66 11.2Z"/></svg>
+            </button>
+
+            <textarea id="msg-input" placeholder="Message..." rows="1"></textarea>
+            
+            <button class="icon-btn send-btn" onclick="app.sendMessage()">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
         </div>
     </div>
+
+    <div id="audio-container" style="display: none;"></div>
 
     <script>
-        let myName, peer, conn, isParanoid = false, isTyping = false;
-        const msgInput = document.getElementById('msgInput');
+        /**
+         * P2P Chat Application Core Logic
+         * Uses WebRTC via PeerJS. Mesh Topology for robust Client-Side P2P.
+         */
+        const APP_PREFIX = 'p2pnexus-'; // Namespace to avoid PeerJS public server collisions
         
-        function initChat() {
-            myName = document.getElementById('playerName').value || "Anonim";
-            peer = new Peer();
-            peer.on('open', (id) => {
-                document.getElementById('roomCodeDisplay').innerText = "Cod: " + id;
-                switchScreen('chatScreen');
-            });
+        const app = {
+            peer: null,
+            myId: null,
+            username: 'Anonymous',
+            roomCode: '',
+            isHost: false,
+            
+            connections: new Map(), // peerId => DataConnection
+            calls: new Map(),       // peerId => MediaConnection
+            
+            isParanoid: false,
+            isAudioActive: false,
+            localStream: null,
+            
+            typingUsers: new Set(),
+            typingTimeout: null,
 
-            peer.on('connection', c => { conn = c; setupConn(); });
-            peer.on('call', call => {
-                navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
-                    call.answer(stream);
-                    call.on('stream', userStream => {
-                        const audio = new Audio();
-                        audio.srcObject = userStream;
-                        audio.play();
-                    });
+            // === 1. Initialization & Room Management ===
+
+            init() {
+                this.bindUIEvents();
+            },
+
+            bindUIEvents() {
+                const msgInput = document.getElementById('msg-input');
+                // Auto-grow textarea
+                msgInput.addEventListener('input', function() {
+                    this.style.height = '44px';
+                    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+                    app.handleTyping();
                 });
-            });
-        }
+                // Send on Enter (Shift+Enter for newline)
+                msgInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        app.sendMessage();
+                    }
+                });
+            },
 
-        function setupConn() {
-            conn.on('data', data => {
-                if(data.type === 'CHAT') appendMsg(data.sender, data.text, data.destruct);
-                if(data.type === 'TYPING') document.getElementById('typingIndicator').style.display = data.status ? 'block' : 'none';
-            });
-        }
+            generateRoomCode() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let code = '';
+                for(let i=0; i<5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+                return code;
+            },
 
-        // Logică Typing Indicator
-        msgInput.addEventListener('input', () => {
-            if(!isTyping) { isTyping = true; sendData({type: 'TYPING', status: true}); }
-            clearTimeout(window.typingTimer);
-            window.typingTimer = setTimeout(() => { isTyping = false; sendData({type: 'TYPING', status: false}); }, 1000);
-        });
+            setupPeer(id) {
+                return new Promise((resolve, reject) => {
+                    this.peer = new Peer(id);
+                    this.peer.on('open', (peerId) => resolve(peerId));
+                    this.peer.on('error', (err) => {
+                        this.showError(`Connection Error: ${err.type}`);
+                        reject(err);
+                    });
+                    
+                    // Handle incoming data connections (Mesh)
+                    this.peer.on('connection', (conn) => this.handleNewConnection(conn));
+                    
+                    // Handle incoming audio calls
+                    this.peer.on('call', (call) => this.handleIncomingCall(call));
+                });
+            },
 
-        function toggleParanoid() {
-            isParanoid = !isParanoid;
-            document.getElementById('paranoidBtn').classList.toggle('active');
-        }
+            async hostRoom() {
+                this.username = document.getElementById('username').value.trim() || 'Host';
+                this.roomCode = this.generateRoomCode();
+                this.isHost = true;
+                
+                try {
+                    await this.setupPeer(APP_PREFIX + this.roomCode);
+                    this.transitionToChat();
+                    this.addSystemMessage(`Room created. Share code: ${this.roomCode}`);
+                } catch (e) { console.error(e); }
+            },
 
-        function sendMessage() {
-            const text = msgInput.value;
-            if(!text) return;
-            appendMsg("Tu", text, isParanoid, true);
-            sendData({type: 'CHAT', sender: myName, text, destruct: isParanoid});
-            msgInput.value = "";
-        }
+            async joinRoom() {
+                this.username = document.getElementById('username').value.trim() || 'Guest_' + Math.floor(Math.random()*100);
+                const code = document.getElementById('room-code').value.trim().toUpperCase();
+                
+                if(code.length !== 5) return this.showError("Please enter a valid 5-letter code.");
+                this.roomCode = code;
 
-        function appendMsg(sender, text, destruct, isMe = false) {
-            const div = document.createElement('div');
-            div.className = `msg-wrapper ${isMe ? 'me' : 'others'}`;
-            div.innerHTML = `<div class="msg-bubble">${text}</div>`;
-            document.getElementById('msgArea').appendChild(div);
-            if(destruct) setTimeout(() => div.remove(), 10000);
-        }
+                try {
+                    // Guests get random IDs
+                    await this.setupPeer(); 
+                    
+                    // Connect to Host
+                    const hostId = APP_PREFIX + this.roomCode;
+                    const conn = this.peer.connect(hostId, { metadata: { username: this.username } });
+                    
+                    conn.on('open', () => {
+                        this.handleNewConnection(conn);
+                        this.transitionToChat();
+                        this.addSystemMessage(`Connected to Room ${this.roomCode}`);
+                    });
+                } catch (e) { console.error(e); }
+            },
 
-        function startAudioCall() {
-            const remoteId = prompt("Introdu codul prietenului pentru apel:");
-            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
-                const call = peer.call(remoteId, stream);
-                call.on('stream', userStream => { const audio = new Audio(); audio.srcObject = userStream; audio.play(); });
-            });
-        }
+            // === 2. P2P Mesh Networking ===
 
-        function sendData(obj) { if(conn && conn.open) conn.send(obj); }
-        function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+            handleNewConnection(conn) {
+                conn.on('open', () => {
+                    // Store connection
+                    this.connections.set(conn.peer, conn);
+                    this.updateParticipantCount();
+
+                    // If Host, send existing peer list to the new joiner so they can connect to others (Mesh)
+                    if (this.isHost) {
+                        const existingPeers = Array.from(this.connections.keys()).filter(id => id !== conn.peer);
+                        conn.send({ type: 'PEER_LIST', peers: existingPeers });
+                        this.broadcast({ type: 'SYSTEM', msg: `${conn.metadata.username} joined the room.` });
+                    }
+                });
+
+                conn.on('data', (data) => this.handleIncomingData(data, conn));
+                
+                conn.on('close', () => {
+                    this.connections.delete(conn.peer);
+                    this.updateParticipantCount();
+                    if(conn.metadata && conn.metadata.username) {
+                        this.addSystemMessage(`${conn.metadata.username} disconnected.`);
+                    }
+                });
+            },
+
+            handleIncomingData(data, conn) {
+                switch(data.type) {
+                    case 'PEER_LIST':
+                        // Guest receives list of other peers from Host and connects to them
+                        data.peers.forEach(peerId => {
+                            if (!this.connections.has(peerId) && peerId !== this.peer.id) {
+                                const newConn = this.peer.connect(peerId, { metadata: { username: this.username } });
+                                this.handleNewConnection(newConn);
+                            }
+                        });
+                        break;
+                    case 'TEXT':
+                        this.appendMessage(data.username, data.text, false, data.paranoid);
+                        break;
+                    case 'SYSTEM':
+                        this.addSystemMessage(data.msg);
+                        break;
+                    case 'TYPING':
+                        if (data.isTyping) this.typingUsers.add(data.username);
+                        else this.typingUsers.delete(data.username);
+                        this.updateTypingIndicator();
+                        break;
+                }
+            },
+
+            broadcast(data) {
+                this.connections.forEach(conn => {
+                    if (conn.open) conn.send(data);
+                });
+            },
+
+            // === 3. Messaging Logic ===
+
+            sendMessage() {
+                const input = document.getElementById('msg-input');
+                const text = input.value.trim();
+                if (!text) return;
+
+                // Send to peers
+                this.broadcast({
+                    type: 'TEXT',
+                    text: text,
+                    username: this.username,
+                    paranoid: this.isParanoid
+                });
+
+                // Show locally
+                this.appendMessage('You', text, true, this.isParanoid);
+                
+                // Reset input
+                input.value = '';
+                input.style.height = '44px';
+                this.broadcast({ type: 'TYPING', isTyping: false, username: this.username });
+            },
+
+            handleTyping() {
+                this.broadcast({ type: 'TYPING', isTyping: true, username: this.username });
+                clearTimeout(this.typingTimeout);
+                this.typingTimeout = setTimeout(() => {
+                    this.broadcast({ type: 'TYPING', isTyping: false, username: this.username });
+                }, 2000);
+            },
+
+            updateTypingIndicator() {
+                const ind = document.getElementById('typing-indicator');
+                if (this.typingUsers.size === 0) {
+                    ind.style.opacity = '0';
+                } else {
+                    const names = Array.from(this.typingUsers).join(', ');
+                    ind.innerText = `${names} ${this.typingUsers.size > 1 ? 'are' : 'is'} typing...`;
+                    ind.style.opacity = '1';
+                }
+            },
+
+            appendMessage(sender, text, isSentByMe, isParanoid) {
+                const container = document.getElementById('messages');
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${isSentByMe ? 'msg-sent' : 'msg-recv'} ${isParanoid ? 'paranoid-msg' : ''}`;
+                
+                msgDiv.innerHTML = `
+                    <span class="sender">${sender}</span>
+                    <p>${this.escapeHTML(text)}</p>
+                `;
+                
+                container.appendChild(msgDiv);
+                container.scrollTop = container.scrollHeight;
+
+                if (isParanoid) {
+                    setTimeout(() => {
+                        if(msgDiv.parentNode) {
+                            msgDiv.style.animation = 'fadeOut 0.3s ease forwards';
+                            setTimeout(() => msgDiv.remove(), 300);
+                        }
+                    }, 10000); // 10 seconds auto-destruct
+                }
+            },
+
+            addSystemMessage(text) {
+                const container = document.getElementById('messages');
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message msg-system';
+                msgDiv.innerText = text;
+                container.appendChild(msgDiv);
+                container.scrollTop = container.scrollHeight;
+            },
+
+            // === 4. Voice / Walkie-Talkie (WebRTC Audio) ===
+
+            async toggleAudio() {
+                const btn = document.getElementById('btn-mic');
+                this.isAudioActive = !this.isAudioActive;
+
+                if (this.isAudioActive) {
+                    try {
+                        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                        btn.classList.add('active');
+                        this.addSystemMessage('Walkie-Talkie activated.');
+                        
+                        // Call all connected peers
+                        this.connections.forEach((conn, peerId) => {
+                            const call = this.peer.call(peerId, this.localStream);
+                            this.handleOutgoingCall(call, peerId);
+                        });
+                    } catch (err) {
+                        this.showError("Microphone access denied.");
+                        this.isAudioActive = false;
+                        btn.classList.remove('active');
+                    }
+                } else {
+                    // Turn off audio
+                    if (this.localStream) {
+                        this.localStream.getTracks().forEach(track => track.stop());
+                        this.localStream = null;
+                    }
+                    this.calls.forEach(call => call.close());
+                    this.calls.clear();
+                    btn.classList.remove('active');
+                    this.addSystemMessage('Walkie-Talkie disabled.');
+                }
+            },
+
+            handleOutgoingCall(call, peerId) {
+                this.calls.set(peerId, call);
+                call.on('stream', remoteStream => this.playRemoteAudio(remoteStream, peerId));
+                call.on('close', () => this.removeRemoteAudio(peerId));
+            },
+
+            handleIncomingCall(call) {
+                if (this.isAudioActive && this.localStream) {
+                    call.answer(this.localStream);
+                } else {
+                    call.answer(); // Answer without stream to receive only
+                }
+                
+                this.calls.set(call.peer, call);
+                call.on('stream', remoteStream => this.playRemoteAudio(remoteStream, call.peer));
+                call.on('close', () => this.removeRemoteAudio(call.peer));
+            },
+
+            playRemoteAudio(stream, peerId) {
+                const container = document.getElementById('audio-container');
+                let audioObj = document.getElementById('audio-' + peerId);
+                
+                if (!audioObj) {
+                    audioObj = document.createElement('audio');
+                    audioObj.id = 'audio-' + peerId;
+                    audioObj.autoplay = true;
+                    container.appendChild(audioObj);
+                }
+                audioObj.srcObject = stream;
+            },
+
+            removeRemoteAudio(peerId) {
+                const audioObj = document.getElementById('audio-' + peerId);
+                if (audioObj) audioObj.remove();
+                this.calls.delete(peerId);
+            },
+
+            // === 5. Utility Functions ===
+
+            toggleParanoid() {
+                this.isParanoid = !this.isParanoid;
+                const btn = document.getElementById('btn-paranoid');
+                if(this.isParanoid) {
+                    btn.classList.add('active');
+                    this.showError("Paranoid Mode ON: Messages destruct in 10s");
+                } else {
+                    btn.classList.remove('active');
+                }
+            },
+
+            transitionToChat() {
+                document.getElementById('lobby-screen').style.display = 'none';
+                document.getElementById('chat-screen').style.display = 'flex';
+                document.getElementById('display-room-code').innerText = this.roomCode;
+            },
+
+            updateParticipantCount() {
+                const count = this.connections.size + 1; // +1 for self
+                document.getElementById('participant-count').innerText = `${count} participant${count > 1 ? 's' : ''}`;
+            },
+
+            showError(msg) {
+                const toast = document.getElementById('toast');
+                toast.innerText = msg;
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 3000);
+            },
+
+            escapeHTML(str) {
+                return str.replace(/[&<>'"]/g, 
+                    tag => ({
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        "'": '&#39;',
+                        '"': '&quot;'
+                    }[tag] || tag)
+                );
+            }
+        };
+
+        // Initialize application logic
+        window.addEventListener('DOMContentLoaded', () => app.init());
+
     </script>
 </body>
 </html>
-```
-
-### 🧠 Cum să folosești funcțiile noi:
-*   **Modul Paranoid (🔥):** Înainte să trimiți un mesaj, apasă butonul cu foc. Mesajul tău va dispărea de pe ecranul prietenului (și de pe al tău) după 10 secunde. 
-*   **Indicator Typing:** Când scrii în căsuța de text, prietenul tău vede în timp real "Cineva scrie..." sus în header.
-*   **Apel Vocal:** Apasă butonul "📞 Apel", introdu codul de ID afișat în header-ul prietenului (pe care îl primești când se conectează) și se va iniția fluxul audio P2P.
-
-Este un sistem complet privat, fără baze de date, care trăiește doar în browserul vostru!

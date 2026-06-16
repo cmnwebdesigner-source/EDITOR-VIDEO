@@ -1,564 +1,1108 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ro">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CMN Magic Eraser Pro</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-        :root {
-            --bg-dark: #0a0a0c;
-            --panel-bg: rgba(20, 20, 25, 0.85);
-            --accent: #ff2a5f; /* Culoare specifică uneltelor de 'ștergere' */
-            --accent-hover: #ff4d79;
-            --text-main: #ffffff;
-            --text-muted: #888899;
-            --border: rgba(255, 255, 255, 0.1);
-            --glow: 0 0 20px rgba(255, 42, 95, 0.4);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
-
-        body {
-            background-color: #000;
-            background-image: radial-gradient(circle at 50% 50%, #1a1a24 0%, #0a0a0c 100%);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            color: var(--text-main);
-        }
-
-        /* App Container */
-        #app-root {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        /* Header */
-        header {
-            position: absolute; top: 0; left: 0; right: 0;
-            height: 60px;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px;
-            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
-            z-index: 50;
-            pointer-events: none; /* Lăsăm click-urile să treacă prin fundal */
-        }
-        header > * { pointer-events: auto; } /* Reactivăm butoanele */
-
-        .logo { font-weight: 800; font-size: 1.2rem; letter-spacing: 1px; }
-        .logo span { color: var(--accent); }
-
-        .top-tools { display: flex; gap: 15px; align-items: center; }
-        
-        .btn-icon {
-            background: rgba(255,255,255,0.1); border: 1px solid var(--border);
-            color: white; width: 36px; height: 36px; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            cursor: pointer; backdrop-filter: blur(10px); transition: 0.2s;
-        }
-        .btn-icon:hover { background: rgba(255,255,255,0.2); }
-        .btn-icon.disabled { opacity: 0.3; pointer-events: none; }
-
-        .btn-export {
-            background: var(--text-main); color: #000; border: none;
-            padding: 8px 18px; border-radius: 20px; font-weight: 700; font-size: 0.9rem;
-            cursor: pointer; transition: 0.2s;
-        }
-        .btn-export:hover { background: var(--accent); color: white; box-shadow: var(--glow); }
-
-        /* Workspace & Canvas */
-        .workspace {
-            flex: 1;
-            position: relative;
-            display: flex; justify-content: center; align-items: center;
-            overflow: hidden;
-            cursor: crosshair;
-        }
-
-        canvas {
-            position: absolute;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            transform-origin: center center;
-        }
-
-        #displayCanvas { z-index: 10; }
-        /* Masca o afișăm semi-transparentă roșie */
-        #maskCanvas { z-index: 20; opacity: 0.6; mix-blend-mode: multiply; pointer-events: none; }
-
-        /* Custom Cursor for Brush */
-        #brushCursor {
-            position: fixed; pointer-events: none; z-index: 100;
-            border: 2px solid rgba(255, 255, 255, 0.8); background: rgba(255, 42, 95, 0.3);
-            border-radius: 50%; transform: translate(-50%, -50%); display: none;
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        }
-
-        /* Toolbar Bottom */
-        .bottom-toolbar {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--panel-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border); border-radius: 24px;
-            padding: 15px 25px; display: flex; flex-direction: column; gap: 15px;
-            z-index: 50; width: 90%; max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-
-        .tool-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
-        
-        .slider-container { flex: 1; display: flex; align-items: center; gap: 10px; }
-        .slider-container span { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-        
-        input[type=range] {
-            flex: 1; -webkit-appearance: none; background: transparent; height: 20px;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
-            background: var(--text-main); margin-top: -7px; cursor: pointer; border: 2px solid var(--panel-bg);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-
-        .btn-magic {
-            background: var(--accent); color: white; border: none;
-            padding: 12px 20px; border-radius: 12px; font-weight: 800; font-size: 1rem;
-            cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;
-            flex: 1; justify-content: center; box-shadow: var(--glow);
-        }
-        .btn-magic:active { transform: scale(0.95); }
-        .btn-magic.disabled { background: #333; color: #666; box-shadow: none; pointer-events: none; }
-
-        .btn-clear {
-            background: transparent; border: 1px solid var(--border); color: var(--text-main);
-            padding: 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Upload Splash */
-        .upload-overlay {
-            position: absolute; inset: 0; background: var(--bg-dark); z-index: 200;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .upload-box {
-            border: 2px dashed var(--accent); padding: 40px; border-radius: 20px; text-align: center;
-            cursor: pointer; background: rgba(255, 42, 95, 0.05); transition: 0.3s;
-        }
-        .upload-box:hover { background: rgba(255, 42, 95, 0.1); box-shadow: var(--glow); }
-        .upload-box svg { width: 50px; height: 50px; fill: var(--accent); margin-bottom: 15px; }
-        .upload-box h2 { font-size: 1.5rem; margin-bottom: 5px; }
-        .upload-box p { color: var(--text-muted); font-size: 0.9rem; }
-        #fileInput { display: none; }
-
-        /* Loader */
-        .loader-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: 300;
-            display: none; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(5px);
-        }
-        .spinner {
-            width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1);
-            border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#060816" />
+  <title>Phone Duel Arena - joc 2 telefoane</title>
+  <style>
+    :root{
+      --bg:#060816;
+      --panel:#11162b;
+      --panel2:#171d36;
+      --line:rgba(255,255,255,.12);
+      --text:#f6f8ff;
+      --muted:#aab3d9;
+      --accent:#7c5cff;
+      --accent2:#00e0ff;
+      --danger:#ff3b6b;
+      --good:#32e875;
+      --warn:#ffd166;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --safeTop: env(safe-area-inset-top, 0px);
+      --safeBottom: env(safe-area-inset-bottom, 0px);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    button,textarea,input,select{font:inherit}
+    button{border:0;border-radius:16px;background:linear-gradient(135deg,var(--accent),#43b6ff);color:white;padding:12px 14px;font-weight:800;box-shadow:0 10px 25px rgba(124,92,255,.25);cursor:pointer}
+    button.secondary{background:rgba(255,255,255,.08);border:1px solid var(--line);box-shadow:none}
+    button.danger{background:linear-gradient(135deg,#ff3b6b,#ff8a3d)}
+    button.good{background:linear-gradient(135deg,#21d777,#00c2ff)}
+    button.small{border-radius:12px;padding:8px 10px;font-size:13px}
+    button:disabled{opacity:.45;filter:grayscale(.5);cursor:not-allowed}
+    textarea{width:100%;min-height:92px;resize:vertical;background:#070a18;color:#e8ecff;border:1px solid var(--line);border-radius:14px;padding:10px;outline:none}
+    input,select{background:#070a18;color:#e8ecff;border:1px solid var(--line);border-radius:12px;padding:10px;outline:none}
+    .app{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr;background:
+      radial-gradient(circle at 10% 5%,rgba(124,92,255,.25),transparent 28%),
+      radial-gradient(circle at 90% 0%,rgba(0,224,255,.2),transparent 28%),
+      var(--bg)}
+    .topbar{height:calc(58px + var(--safeTop));padding:var(--safeTop) 12px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);background:rgba(6,8,22,.75);backdrop-filter:blur(14px);z-index:10}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.2px}
+    .logo{width:34px;height:34px;border-radius:12px;background:conic-gradient(from 180deg,var(--accent),var(--accent2),var(--danger),var(--accent));box-shadow:0 8px 24px rgba(0,224,255,.22);position:relative}
+    .logo:after{content:"";position:absolute;inset:8px;border-radius:8px;background:#070a18}
+    .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);background:rgba(255,255,255,.06);padding:7px 9px;border-radius:999px;white-space:nowrap}
+    .statusDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6d748f;margin-right:6px;vertical-align:-1px}
+    .statusDot.ok{background:var(--good);box-shadow:0 0 0 4px rgba(50,232,117,.14)}
+    .screen{position:relative;min-height:0;overflow:hidden}
+    canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;background:#060816}
+    .hud{position:absolute;left:10px;right:10px;top:10px;display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;gap:10px;z-index:5}
+    .hudCard{background:rgba(12,16,34,.62);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:10px 12px;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .score{font-size:28px;font-weight:950;line-height:1}
+    .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+    .hpWrap{width:130px;height:9px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden;margin-top:6px}
+    .hp{height:100%;width:100%;background:linear-gradient(90deg,var(--good),var(--warn),var(--danger));border-radius:inherit}
+    .centerMsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:min(92vw,520px);text-align:center;z-index:6;pointer-events:none}
+    .centerMsg .big{font-size:clamp(30px,9vw,56px);font-weight:950;text-shadow:0 8px 24px rgba(0,0,0,.45)}
+    .centerMsg .sub{font-size:14px;color:var(--muted);margin-top:8px;line-height:1.45}
+    .controls{position:absolute;left:0;right:0;bottom:calc(10px + var(--safeBottom));display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px;z-index:7;pointer-events:none}
+    .pad{display:flex;gap:12px;pointer-events:auto}
+    .roundBtn{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 30px rgba(0,0,0,.28);user-select:none}
+    .roundBtn.fire{width:92px;height:92px;background:radial-gradient(circle at 35% 25%,#fff7,transparent 20%),linear-gradient(135deg,#ff3b6b,#ff9c3d);font-size:30px}
+    .roundBtn.dash{background:linear-gradient(135deg,#7c5cff,#00e0ff)}
+    .roundBtn.active{transform:scale(.94);filter:brightness(1.18)}
+    .drawer{position:absolute;inset:0;z-index:20;background:rgba(3,5,14,.82);backdrop-filter:blur(18px);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+    .drawer.hidden{display:none}
+    .panel{width:min(760px,100%);max-height:calc(100vh - 32px);overflow:auto;background:linear-gradient(180deg,rgba(23,29,54,.98),rgba(12,16,34,.98));border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:18px}
+    .panel h1{font-size:28px;margin:0 0 8px}
+    .panel h2{font-size:18px;margin:18px 0 10px}
+    .panel p{color:var(--muted);line-height:1.45;margin:8px 0}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .card{background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:18px;padding:12px}
+    .step{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
+    .num{width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:950;flex:0 0 auto}
+    .mini{font-size:12px;color:var(--muted)}
+    .hidden{display:none!important}
+    .toast{position:absolute;left:50%;bottom:calc(126px + var(--safeBottom));transform:translateX(-50%);background:rgba(10,14,31,.86);border:1px solid var(--line);border-radius:999px;padding:10px 14px;z-index:40;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;white-space:nowrap}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+    .modeTabs{display:flex;gap:8px;overflow:auto;padding-bottom:4px}
+    .modeTabs button{white-space:nowrap}
+    .modeTabs button.selected{outline:2px solid rgba(0,224,255,.55)}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#070a18;border:1px solid var(--line);border-radius:8px;padding:2px 6px;color:#dce4ff}
+    @media (max-width:560px){
+      .grid,.grid3{grid-template-columns:1fr}
+      .panel{border-radius:18px}
+      .topbar{gap:4px}
+      .brand span{font-size:15px}
+      .pill{font-size:11px;padding:6px 7px}
+      .roundBtn{width:64px;height:64px}
+      .roundBtn.fire{width:88px;height:88px}
+    }
+  </style>
 </head>
 <body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="logo"></div><span>Phone Duel Arena</span></div>
+    <div class="row" style="gap:6px">
+      <div class="pill" id="connPill"><span class="statusDot" id="statusDot"></span><span id="connText">Offline</span></div>
+      <button class="small secondary" id="menuBtn">Meniu</button>
+    </div>
+  </header>
 
-    <div id="app-root">
-        
-        <!-- Ecran Încărcare -->
-        <div class="upload-overlay" id="uploadScreen">
-            <label class="upload-box" for="fileInput">
-                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z"/></svg>
-                <h2>Încarcă Fotografia</h2>
-                <p>Selectează imaginea pentru retușare</p>
-            </label>
-            <input type="file" id="fileInput" accept="image/jpeg, image/png, image/webp">
-        </div>
+  <main class="screen" id="screen">
+    <canvas id="game"></canvas>
 
-        <!-- Ecran Procesare (AI Simulation) -->
-        <div class="loader-overlay" id="loaderScreen">
-            <div class="spinner"></div>
-            <h3 style="margin-bottom: 5px;">Se elimină obiectele...</h3>
-            <p style="color: var(--text-muted); font-size: 12px;">Se calculează pixelii adiacenți (Content-Aware)</p>
-        </div>
-
-        <!-- Header -->
-        <header>
-            <div class="logo">CMN <span>Retouch</span></div>
-            <div class="top-tools">
-                <div class="btn-icon disabled" id="btnUndo" title="Undo (Înapoi)">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
-                </div>
-                <button class="btn-export" id="btnExport">Salvează</button>
-            </div>
-        </header>
-
-        <!-- Zona de Editare (Canvas-uri suprapuse) -->
-        <div class="workspace" id="workspace">
-            <!-- Canvas-ul cu imaginea originală/modificată -->
-            <canvas id="displayCanvas"></canvas>
-            <!-- Canvas-ul transparent pe care desenăm masca roșie -->
-            <canvas id="maskCanvas"></canvas>
-            
-            <div id="brushCursor"></div>
-        </div>
-
-        <!-- Toolbar Jos -->
-        <div class="bottom-toolbar">
-            <div class="tool-row">
-                <div class="slider-container">
-                    <span>MĂRIME PENSULĂ</span>
-                    <input type="range" id="brushSize" min="5" max="100" value="30">
-                </div>
-            </div>
-            <div class="tool-row">
-                <button class="btn-clear" id="btnClearMask" title="Șterge Selecția">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                </button>
-                <button class="btn-magic disabled" id="btnMagicErase">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.81 14.12l7.06 7.06c.2.2.51.2.71 0l7.06-7.06c.2-.2.2-.51 0-.71L10.59 6.34c-.2-.2-.51-.2-.71 0L2.81 13.41c-.2.2-.2.52 0 .71zM11.5 8.16l4.66 4.66-4.66 4.66-4.66-4.66 4.66-4.66zM22 13h-4v-2h4v2zm-2-6h-2V5h2v2zm0 12h-2v-2h2v2zM6 5H4V3h2v2zm-2 6H2V9h2v2z"/></svg>
-                    ȘTERGE OBIECT
-                </button>
-            </div>
-        </div>
-
+    <div class="hud">
+      <div class="hudCard">
+        <div class="label">Tu</div>
+        <div class="score"><span id="myScore">0</span></div>
+        <div class="hpWrap"><div class="hp" id="myHp"></div></div>
+      </div>
+      <div class="hudCard" style="text-align:right">
+        <div class="label">Adversar</div>
+        <div class="score"><span id="opScore">0</span></div>
+        <div class="hpWrap"><div class="hp" id="opHp"></div></div>
+      </div>
     </div>
 
-    <script>
-        // --- Referințe DOM ---
-        const UI = {
-            fileInput: document.getElementById('fileInput'),
-            uploadScreen: document.getElementById('uploadScreen'),
-            loaderScreen: document.getElementById('loaderScreen'),
-            workspace: document.getElementById('workspace'),
-            displayCanvas: document.getElementById('displayCanvas'),
-            maskCanvas: document.getElementById('maskCanvas'),
-            brushCursor: document.getElementById('brushCursor'),
-            brushSize: document.getElementById('brushSize'),
-            btnMagicErase: document.getElementById('btnMagicErase'),
-            btnClearMask: document.getElementById('btnClearMask'),
-            btnUndo: document.getElementById('btnUndo'),
-            btnExport: document.getElementById('btnExport')
-        };
+    <div class="centerMsg" id="centerMsg">
+      <div class="big">PHONE DUEL</div>
+      <div class="sub">Țineți telefoanele cu partea de sus una spre cealaltă. Proiectilele care ies prin marginea de sus intră pe ecranul celuilalt.</div>
+    </div>
 
-        const ctxDisplay = UI.displayCanvas.getContext('2d', { willReadFrequently: true });
-        const ctxMask = UI.maskCanvas.getContext('2d', { willReadFrequently: true });
+    <div class="controls">
+      <div class="pad">
+        <div class="roundBtn" id="leftBtn">◀</div>
+        <div class="roundBtn" id="rightBtn">▶</div>
+      </div>
+      <div class="pad">
+        <div class="roundBtn dash" id="dashBtn">⚡</div>
+        <div class="roundBtn fire" id="fireBtn">●</div>
+      </div>
+    </div>
 
-        // --- State Management ---
-        const State = {
-            imageLoaded: false,
-            brushSize: 30,
-            isDrawing: false,
-            hasMask: false,
-            scale: 1, // Pentru responsivitate pe ecran
-            imageObj: new Image(),
-            history: [], // Istoric pentru Undo (Salvăm ImageData)
-            maxHistory: 5
-        };
+    <div class="toast" id="toast"></div>
+  </main>
+</div>
 
-        // --- 1. Încărcarea și Ajustarea Imaginii pe Ecran ---
-        UI.fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+<div class="drawer" id="drawer">
+  <div class="panel">
+    <h1>Phone Duel Arena</h1>
+    <p>Variantă web inspirată de jocurile „across screens”: două telefoane devin o singură arenă. Nu folosește numele, codul sau grafica jocului original.</p>
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                State.imageObj.src = event.target.result;
-                State.imageObj.onload = () => {
-                    UI.uploadScreen.style.display = 'none';
-                    setupCanvases();
-                    saveHistory(); // Salvăm starea inițială
-                };
-            };
-            reader.readAsDataURL(file);
-        });
+    <div class="modeTabs" id="modeTabs">
+      <button class="selected" data-mode="duel">DUEL</button>
+      <button class="secondary" data-mode="deflect">DEFLECT</button>
+      <button class="secondary" data-mode="defend">DEFEND</button>
+      <button class="secondary" data-mode="solo">SOLO TEST</button>
+    </div>
 
-        function setupCanvases() {
-            // Setăm rezoluția internă a canvas-urilor la rezoluția reală a imaginii
-            UI.displayCanvas.width = State.imageObj.width;
-            UI.displayCanvas.height = State.imageObj.height;
-            UI.maskCanvas.width = State.imageObj.width;
-            UI.maskCanvas.height = State.imageObj.height;
+    <div class="grid">
+      <div class="card">
+        <h2>Conectare 2 telefoane</h2>
+        <div class="row">
+          <button id="hostBtn">1. Host</button>
+          <button id="joinBtn" class="secondary">2. Join</button>
+          <button id="resetNetBtn" class="secondary">Reset conexiune</button>
+        </div>
+        <p class="mini">Fără server: conexiunea se face prin WebRTC. Trebuie copiat codul Host pe telefonul Join, apoi codul Answer înapoi pe Host.</p>
+      </div>
 
-            // Desenăm imaginea
-            ctxDisplay.drawImage(State.imageObj, 0, 0);
-            
-            // Setăm stilul pentru desenat pe mască
-            ctxMask.lineCap = 'round';
-            ctxMask.lineJoin = 'round';
-            ctxMask.strokeStyle = '#ff0000'; // Roșu pentru mască
+      <div class="card">
+        <h2>Joc</h2>
+        <div class="row">
+          <button id="startBtn" class="good">Start rundă</button>
+          <button id="pauseBtn" class="secondary">Pauză</button>
+          <button id="soloBtn" class="secondary">Solo test</button>
+        </div>
+        <p class="mini">Controlează nava cu butoanele, swipe pe ecran sau înclinarea telefonului. Trage proiectile prin marginea de sus.</p>
+      </div>
+    </div>
 
-            fitCanvasesToScreen();
-            State.imageLoaded = true;
+    <div class="card" id="hostBox" style="margin-top:12px">
+      <h2>Host code</h2>
+      <div class="step"><div class="num">1</div><div>Apasă <b>Host</b>, așteaptă să apară codul, apoi trimite-l/copiază-l pe al doilea telefon.</div></div>
+      <textarea id="offerOut" placeholder="Aici apare codul Host..." readonly></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="small secondary" id="copyOfferBtn">Copiază Host code</button>
+      </div>
+      <div class="step"><div class="num">3</div><div>După ce telefonul Join generează <b>Answer code</b>, lipește-l aici pe Host și apasă Conectează.</div></div>
+      <textarea id="answerIn" placeholder="Lipește Answer code aici..."></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="small" id="acceptAnswerBtn">Conectează Host</button>
+      </div>
+    </div>
+
+    <div class="card" id="joinBox" style="margin-top:12px">
+      <h2>Join code</h2>
+      <div class="step"><div class="num">2</div><div>Lipește codul primit de la Host, apoi apasă <b>Creează Answer</b>.</div></div>
+      <textarea id="offerIn" placeholder="Lipește Host code aici..."></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="small" id="createAnswerBtn">Creează Answer</button>
+      </div>
+      <textarea id="answerOut" placeholder="Aici apare Answer code..." readonly style="margin-top:8px"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="small secondary" id="copyAnswerBtn">Copiază Answer code</button>
+      </div>
+    </div>
+
+    <div class="grid3" style="margin-top:12px">
+      <div class="card">
+        <h2>Setări</h2>
+        <label class="mini">Control</label>
+        <select id="controlMode">
+          <option value="touch">Butoane + swipe</option>
+          <option value="tilt">Înclinare telefon + butoane</option>
+        </select>
+        <div class="row" style="margin-top:8px">
+          <button class="small secondary" id="enableTiltBtn">Activează tilt</button>
+          <button class="small secondary" id="calibrateBtn">Calibrează</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Aranjare telefoane</h2>
+        <p class="mini">Pentru efectul corect, puneți telefoanele <b>cap în cap</b>, cu partea de sus a ambelor ecrane orientată spre mijloc.</p>
+        <button class="small secondary" id="flipBtn">Inversează stânga/dreapta</button>
+      </div>
+      <div class="card">
+        <h2>Debug</h2>
+        <p class="mini" id="debugInfo">FPS: -- | Ping: --</p>
+        <button class="small secondary" id="hideMenuBtn">Închide meniul</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>Scurt ghid</h2>
+      <p class="mini">
+        <span class="kbd">DUEL</span>: tragi în adversar și eviți gloanțele care vin de pe celălalt telefon.
+        <br><span class="kbd">DEFLECT</span>: lovești bila ca să treacă pe ecranul adversarului.
+        <br><span class="kbd">DEFEND</span>: amândoi apărați zona de valuri de inamici trimiși între ecrane.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("game");
+  const ctx = canvas.getContext("2d", { alpha:false });
+
+  const ui = {
+    drawer:$("drawer"), menuBtn:$("menuBtn"), hideMenuBtn:$("hideMenuBtn"),
+    connText:$("connText"), statusDot:$("statusDot"), centerMsg:$("centerMsg"),
+    myScore:$("myScore"), opScore:$("opScore"), myHp:$("myHp"), opHp:$("opHp"),
+    toast:$("toast"), debug:$("debugInfo"),
+    hostBtn:$("hostBtn"), joinBtn:$("joinBtn"), resetNetBtn:$("resetNetBtn"),
+    startBtn:$("startBtn"), pauseBtn:$("pauseBtn"), soloBtn:$("soloBtn"),
+    offerOut:$("offerOut"), offerIn:$("offerIn"), answerOut:$("answerOut"), answerIn:$("answerIn"),
+    copyOfferBtn:$("copyOfferBtn"), copyAnswerBtn:$("copyAnswerBtn"),
+    acceptAnswerBtn:$("acceptAnswerBtn"), createAnswerBtn:$("createAnswerBtn"),
+    controlMode:$("controlMode"), enableTiltBtn:$("enableTiltBtn"), calibrateBtn:$("calibrateBtn"),
+    leftBtn:$("leftBtn"), rightBtn:$("rightBtn"), fireBtn:$("fireBtn"), dashBtn:$("dashBtn"),
+    flipBtn:$("flipBtn"), modeTabs:$("modeTabs")
+  };
+
+  let W = 0, H = 0, DPR = 1;
+  function resize(){
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    const r = canvas.getBoundingClientRect();
+    W = Math.max(320, Math.floor(r.width));
+    H = Math.max(480, Math.floor(r.height));
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener("resize", resize, {passive:true});
+  resize();
+
+  const config = {
+    mode:"duel",
+    flipped:false,
+    control:"touch",
+    tiltEnabled:false,
+    tiltZero:0,
+    playerColor:"#00e0ff",
+    enemyColor:"#ff3b6b",
+    bulletSpeed:720,
+    incomingSpeed:660,
+    fireCooldown:0.22,
+    dashCooldown:1.15,
+    maxHp:100,
+    arenaPad:24
+  };
+
+  const state = {
+    running:false,
+    paused:false,
+    solo:false,
+    connected:false,
+    isHost:false,
+    last:performance.now(),
+    acc:0,
+    fps:0,
+    fpsFrames:0,
+    fpsTime:0,
+    ping:0,
+    keys:{left:false,right:false,fire:false,dash:false},
+    pointer:null,
+    my:{
+      x:.5, y:.86, vx:0, hp:100, score:0, radius:18, cooldown:0, dash:0, inv:0, charge:0
+    },
+    op:{
+      x:.5, hp:100, score:0, radius:18, lastSeen:0
+    },
+    bullets:[],
+    incoming:[],
+    particles:[],
+    stars:[],
+    ball:null,
+    enemies:[],
+    waveTimer:1.2,
+    shake:0,
+    roundText:"PHONE DUEL",
+    roundSub:"Apasă Start rundă sau conectează două telefoane.",
+    lastNetSend:0,
+    lastPingSent:0
+  };
+
+  for(let i=0;i<80;i++){
+    state.stars.push({x:Math.random(),y:Math.random(),s:Math.random()*2+0.3,a:Math.random()*0.6+0.15});
+  }
+
+  let pc = null;
+  let dc = null;
+
+  function toast(msg){
+    ui.toast.textContent = msg;
+    ui.toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>ui.toast.classList.remove("show"), 2200);
+  }
+
+  function vibrate(ms=35){
+    try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){}
+  }
+
+  function setConnected(ok, txt){
+    state.connected = ok;
+    ui.connText.textContent = txt || (ok ? "Conectat" : "Offline");
+    ui.statusDot.classList.toggle("ok", ok);
+    if(ok){
+      toast("Conectat! Puneți telefoanele cap în cap.");
+      vibrate([40,30,40]);
+    }
+  }
+
+  function safeB64Encode(obj){
+    const s = JSON.stringify(obj);
+    return btoa(unescape(encodeURIComponent(s)));
+  }
+  function safeB64Decode(code){
+    const cleaned = (code || "").trim().replace(/\s+/g, "");
+    return JSON.parse(decodeURIComponent(escape(atob(cleaned))));
+  }
+  async function copyText(t){
+    try{
+      await navigator.clipboard.writeText(t);
+      toast("Copiat.");
+    }catch(e){
+      toast("Nu pot copia automat. Selectează manual codul.");
+    }
+  }
+  function waitIceComplete(peer){
+    return new Promise((resolve) => {
+      if(peer.iceGatheringState === "complete") return resolve();
+      const done = () => {
+        if(peer.iceGatheringState === "complete"){
+          peer.removeEventListener("icegatheringstatechange", done);
+          resolve();
         }
+      };
+      peer.addEventListener("icegatheringstatechange", done);
+      setTimeout(resolve, 5000);
+    });
+  }
 
-        // --- STREAMING_CHUNK:Implementing responsive sizing and viewport math... ---
-        function fitCanvasesToScreen() {
-            const workRect = UI.workspace.getBoundingClientRect();
-            // Lăsăm padding sus și jos
-            const maxWidth = workRect.width * 0.95;
-            const maxHeight = workRect.height * 0.8;
+  function makePeer(){
+    closePeer(false);
+    pc = new RTCPeerConnection({
+      iceServers:[
+        {urls:"stun:stun.l.google.com:19302"},
+        {urls:"stun:stun1.l.google.com:19302"}
+      ]
+    });
+    pc.onconnectionstatechange = () => {
+      const s = pc.connectionState;
+      if(s === "connected") setConnected(true, "Conectat");
+      else if(s === "failed" || s === "disconnected" || s === "closed") setConnected(false, s);
+      else ui.connText.textContent = s;
+    };
+    pc.oniceconnectionstatechange = () => {
+      if(pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") setConnected(true, "Conectat");
+    };
+    pc.ondatachannel = (ev) => {
+      dc = ev.channel;
+      setupChannel();
+    };
+    return pc;
+  }
 
-            const ratioX = maxWidth / UI.displayCanvas.width;
-            const ratioY = maxHeight / UI.displayCanvas.height;
-            State.scale = Math.min(ratioX, ratioY, 1); // Nu scalăm peste dimensiunea originală
+  function setupChannel(){
+    if(!dc) return;
+    dc.binaryType = "arraybuffer";
+    dc.onopen = () => {
+      setConnected(true, "Conectat");
+      send({t:"hello", mode:config.mode});
+      hideMenu();
+    };
+    dc.onclose = () => setConnected(false, "Offline");
+    dc.onerror = () => toast("Eroare DataChannel.");
+    dc.onmessage = (ev) => {
+      let msg;
+      try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+      handleNet(msg);
+    };
+  }
 
-            const finalWidth = UI.displayCanvas.width * State.scale;
-            const finalHeight = UI.displayCanvas.height * State.scale;
+  function send(msg){
+    if(dc && dc.readyState === "open"){
+      try{ dc.send(JSON.stringify(msg)); }catch(e){}
+    }
+  }
 
-            const cssText = `width: ${finalWidth}px; height: ${finalHeight}px;`;
-            UI.displayCanvas.style.cssText = cssText;
-            UI.maskCanvas.style.cssText = cssText;
+  async function host(){
+    state.isHost = true;
+    state.solo = false;
+    setConnected(false, "Host...");
+    const peer = makePeer();
+    dc = peer.createDataChannel("game", {ordered:false, maxRetransmits:0});
+    setupChannel();
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    await waitIceComplete(peer);
+    ui.offerOut.value = safeB64Encode(peer.localDescription);
+    toast("Host code creat. Copiază-l pe al doilea telefon.");
+  }
+
+  async function createAnswer(){
+    try{
+      state.isHost = false;
+      state.solo = false;
+      setConnected(false, "Join...");
+      const offer = safeB64Decode(ui.offerIn.value);
+      const peer = makePeer();
+      await peer.setRemoteDescription(offer);
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      await waitIceComplete(peer);
+      ui.answerOut.value = safeB64Encode(peer.localDescription);
+      toast("Answer creat. Copiază-l pe telefonul Host.");
+    }catch(e){
+      console.error(e);
+      toast("Cod Host invalid sau conexiunea nu poate fi creată.");
+    }
+  }
+
+  async function acceptAnswer(){
+    try{
+      if(!pc) return toast("Apasă Host întâi.");
+      const answer = safeB64Decode(ui.answerIn.value);
+      await pc.setRemoteDescription(answer);
+      toast("Answer acceptat. Așteaptă conectarea.");
+    }catch(e){
+      console.error(e);
+      toast("Answer invalid.");
+    }
+  }
+
+  function closePeer(show=true){
+    try{ if(dc) dc.close(); }catch(e){}
+    try{ if(pc) pc.close(); }catch(e){}
+    dc = null; pc = null;
+    setConnected(false, "Offline");
+    if(show) toast("Conexiune resetată.");
+  }
+
+  function handleNet(m){
+    if(m.t === "hello"){
+      if(m.mode && m.mode !== config.mode) toast("Adversarul e pe modul " + m.mode.toUpperCase() + ".");
+      send({t:"helloBack", mode:config.mode});
+    }else if(m.t === "state"){
+      state.op.x = clamp(m.x,0,1);
+      state.op.hp = clamp(m.hp,0,config.maxHp);
+      state.op.score = m.score || 0;
+      state.op.lastSeen = performance.now();
+      updateUI();
+    }else if(m.t === "bullet"){
+      spawnIncoming(m.x, m.power || 1, m.kind || "normal");
+    }else if(m.t === "ball"){
+      if(config.mode === "deflect") receiveBall(m);
+    }else if(m.t === "hit"){
+      state.op.hp = m.hp;
+      updateUI();
+    }else if(m.t === "score"){
+      state.op.score = m.score || state.op.score;
+      updateUI();
+    }else if(m.t === "start"){
+      startRound(false);
+    }else if(m.t === "mode"){
+      config.mode = m.mode;
+      selectMode(config.mode, false);
+    }else if(m.t === "ping"){
+      send({t:"pong", n:m.n});
+    }else if(m.t === "pong"){
+      state.ping = Math.round(performance.now() - m.n);
+    }else if(m.t === "enemy"){
+      if(config.mode === "defend") spawnIncomingEnemy(m.x, m.hp || 24, true);
+    }
+  }
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  function resetRound(){
+    state.my.x = .5;
+    state.my.vx = 0;
+    state.my.hp = config.maxHp;
+    state.my.cooldown = 0;
+    state.my.dash = 0;
+    state.my.inv = 1.1;
+    state.op.hp = config.maxHp;
+    state.bullets.length = 0;
+    state.incoming.length = 0;
+    state.particles.length = 0;
+    state.enemies.length = 0;
+    state.waveTimer = 1.2;
+    state.ball = config.mode === "deflect" ? {x:.5,y:.5,vx:(Math.random()<.5?-1:1)*180,vy:-420,r:16,owner:"local"} : null;
+    state.roundText = config.mode.toUpperCase();
+    state.roundSub = "Trage prin marginea de sus. Evită ce vine de pe telefonul celălalt.";
+    updateUI();
+  }
+
+  function startRound(sendNet=true){
+    resetRound();
+    state.running = true;
+    state.paused = false;
+    ui.centerMsg.style.display = "none";
+    hideMenu();
+    if(sendNet) send({t:"start"});
+    toast("Runda a început!");
+    vibrate(50);
+  }
+
+  function pauseToggle(){
+    state.paused = !state.paused;
+    ui.centerMsg.style.display = state.paused ? "block" : "none";
+    state.roundText = state.paused ? "PAUZĂ" : "";
+    state.roundSub = "Apasă Pauză sau Start rundă.";
+  }
+
+  function soloMode(){
+    state.solo = true;
+    setConnected(false, "Solo test");
+    config.mode = "solo";
+    selectMode("solo", false);
+    startRound(false);
+  }
+
+  function selectMode(mode, notify=true){
+    config.mode = mode;
+    [...ui.modeTabs.querySelectorAll("button")].forEach(b=>{
+      const s = b.dataset.mode === mode;
+      b.classList.toggle("selected", s);
+      b.classList.toggle("secondary", !s);
+    });
+    if(notify) send({t:"mode", mode});
+    if(!state.running){
+      state.roundText = mode.toUpperCase();
+      state.roundSub = mode === "deflect" ? "Lovește bila ca să treacă pe ecranul adversarului." :
+                       mode === "defend" ? "Apărați zona de valuri de inamici." :
+                       mode === "solo" ? "Test local fără al doilea telefon." :
+                       "Duel 1v1 cu proiectile între telefoane.";
+    }
+    toast("Mod: " + mode.toUpperCase());
+  }
+
+  function updateUI(){
+    ui.myScore.textContent = state.my.score;
+    ui.opScore.textContent = state.op.score;
+    ui.myHp.style.width = clamp(state.my.hp / config.maxHp * 100,0,100) + "%";
+    ui.opHp.style.width = clamp(state.op.hp / config.maxHp * 100,0,100) + "%";
+    const big = ui.centerMsg.querySelector(".big");
+    const sub = ui.centerMsg.querySelector(".sub");
+    big.textContent = state.roundText || "PHONE DUEL";
+    sub.textContent = state.roundSub || "";
+  }
+
+  function showMenu(){ ui.drawer.classList.remove("hidden"); }
+  function hideMenu(){ ui.drawer.classList.add("hidden"); }
+
+  function spawnBullet(power=1, kind="normal"){
+    if(state.my.cooldown > 0) return;
+    state.my.cooldown = config.fireCooldown * (kind === "charge" ? 1.4 : 1);
+    const x = state.my.x * W;
+    const y = H * state.my.y - 25;
+    const sp = config.bulletSpeed * (kind === "charge" ? .92 : 1);
+    const size = kind === "charge" ? 8 + power*6 : 6;
+    state.bullets.push({x,y,vx:0,vy:-sp,r:size,power,kind,life:2});
+    addParticles(x,y,10,config.playerColor);
+    vibrate(15);
+  }
+
+  function spawnIncoming(xNorm, power=1, kind="normal"){
+    const x = clamp(xNorm,0,1) * W;
+    const size = kind === "charge" ? 13 : 8;
+    state.incoming.push({x,y:-18,vx:0,vy:config.incomingSpeed,r:size,power,kind,life:3});
+    addParticles(x,6,8,config.enemyColor);
+  }
+
+  function addParticles(x,y,n,color){
+    for(let i=0;i<n;i++){
+      const a = Math.random()*Math.PI*2;
+      const s = Math.random()*180+40;
+      state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:Math.random()*3+1,life:Math.random()*0.5+0.25,color});
+    }
+  }
+
+  function hitPlayer(dmg){
+    if(state.my.inv > 0) return;
+    state.my.hp -= dmg;
+    state.my.inv = .35;
+    state.shake = 10;
+    vibrate([30,20,30]);
+    addParticles(state.my.x*W,H*state.my.y,22,config.danger);
+    send({t:"hit", hp:state.my.hp});
+    if(state.my.hp <= 0){
+      state.my.hp = 0;
+      state.op.score++;
+      send({t:"score", score:state.my.score});
+      gameOver(false);
+    }
+    updateUI();
+  }
+
+  function gameOver(won){
+    state.running = false;
+    ui.centerMsg.style.display = "block";
+    state.roundText = won ? "AI CÂȘTIGAT!" : "AI PIERDUT!";
+    state.roundSub = "Apasă Start rundă pentru revanșă.";
+    updateUI();
+    vibrate(won ? [70,40,70,40,120] : 160);
+  }
+
+  function dash(){
+    if(state.my.dash > 0) return;
+    const dir = state.keys.left && !state.keys.right ? -1 : state.keys.right && !state.keys.left ? 1 : (state.my.vx >= 0 ? 1 : -1);
+    state.my.x = clamp(state.my.x + dir * .20, .06, .94);
+    state.my.dash = config.dashCooldown;
+    state.my.inv = .18;
+    addParticles(state.my.x*W, H*state.my.y, 20, config.accent2);
+    vibrate(20);
+  }
+
+  function sendNetState(now){
+    if(!state.connected && !state.solo) return;
+    if(now - state.lastNetSend > 50){
+      send({t:"state", x:state.my.x, hp:state.my.hp, score:state.my.score});
+      state.lastNetSend = now;
+    }
+    if(now - state.lastPingSent > 1200){
+      send({t:"ping", n:now});
+      state.lastPingSent = now;
+    }
+  }
+
+  function update(dt, now){
+    state.fpsFrames++;
+    state.fpsTime += dt;
+    if(state.fpsTime >= .5){
+      state.fps = Math.round(state.fpsFrames / state.fpsTime);
+      state.fpsFrames = 0; state.fpsTime = 0;
+      ui.debug.textContent = "FPS: " + state.fps + " | Ping: " + (state.ping || "--") + " ms";
+    }
+
+    for(const s of state.stars){
+      s.y += dt * (0.03 + s.s*0.012);
+      if(s.y > 1){ s.y = 0; s.x = Math.random(); }
+    }
+
+    if(!state.running || state.paused) return;
+
+    const speed = 1.65;
+    let move = 0;
+    if(state.keys.left) move -= 1;
+    if(state.keys.right) move += 1;
+    if(state.pointer !== null){
+      const target = state.pointer / W;
+      state.my.x = lerp(state.my.x, clamp(target,.04,.96), clamp(dt*8,0,1));
+    }else if(config.control === "tilt" && config.tiltEnabled){
+      move += clamp((tiltGamma - config.tiltZero) / 18, -1, 1);
+    }
+    if(config.flipped) move *= -1;
+    state.my.vx = lerp(state.my.vx, move * speed, clamp(dt*12,0,1));
+    state.my.x = clamp(state.my.x + state.my.vx * dt, .05, .95);
+
+    state.my.cooldown = Math.max(0, state.my.cooldown - dt);
+    state.my.dash = Math.max(0, state.my.dash - dt);
+    state.my.inv = Math.max(0, state.my.inv - dt);
+    if(state.keys.fire) state.my.charge = Math.min(1.5, state.my.charge + dt); else state.my.charge = 0;
+
+    for(let i=state.bullets.length-1;i>=0;i--){
+      const b = state.bullets[i];
+      b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
+      if(b.y < -b.r){
+        const xNorm = clamp(b.x / W,0,1);
+        if(state.solo){
+          spawnIncoming(1-xNorm, b.power, b.kind);
+        }else{
+          send({t:"bullet", x:xNorm, power:b.power, kind:b.kind});
         }
+        state.bullets.splice(i,1);
+      }else if(b.life <= 0){
+        state.bullets.splice(i,1);
+      }
+    }
 
-        window.addEventListener('resize', () => {
-            if (State.imageLoaded) fitCanvasesToScreen();
-        });
+    for(let i=state.incoming.length-1;i>=0;i--){
+      const b = state.incoming[i];
+      b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
+      const dx = b.x - state.my.x*W;
+      const dy = b.y - H*state.my.y;
+      if(Math.hypot(dx,dy) < b.r + state.my.radius){
+        hitPlayer(b.kind === "charge" ? 22 : 12);
+        state.incoming.splice(i,1);
+      }else if(b.y > H + 60 || b.life <= 0){
+        state.incoming.splice(i,1);
+      }
+    }
 
-        // --- 2. Logica de Desenare a Măștii (Brush) ---
-        // Convertim coordonatele mouse/touch raportate la ecran în coordonate interne ale canvas-ului
-        function getCanvasCoords(e) {
-            const rect = UI.maskCanvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            // Scalare înapoi de la CSS width la rezoluția reală internă
-            const x = (clientX - rect.left) / State.scale;
-            const y = (clientY - rect.top) / State.scale;
-            return { x, y };
+    if(state.solo && config.mode !== "deflect"){
+      soloAI(dt);
+    }
+
+    if(config.mode === "deflect"){
+      updateDeflect(dt);
+    }
+    if(config.mode === "defend"){
+      updateDefend(dt);
+    }
+
+    for(let i=state.particles.length-1;i>=0;i--){
+      const p = state.particles[i];
+      p.x += p.vx*dt; p.y += p.vy*dt;
+      p.vx *= Math.pow(.05,dt); p.vy *= Math.pow(.05,dt);
+      p.life -= dt; p.r *= Math.pow(.4,dt);
+      if(p.life <= 0 || p.r < .2) state.particles.splice(i,1);
+    }
+
+    state.shake = Math.max(0, state.shake - dt*30);
+    sendNetState(now);
+    updateUI();
+  }
+
+  function soloAI(dt){
+    const target = state.my.x < .5 ? .72 : .28;
+    if(Math.random() < dt * 1.4) spawnIncoming(target + (Math.random()-.5)*.12, 1, Math.random()<.2 ? "charge" : "normal");
+  }
+
+  function updateDeflect(dt){
+    if(!state.ball) return;
+    const ball = state.ball;
+    ball.x += ball.vx * dt / W;
+    ball.y += ball.vy * dt / H;
+    if(ball.x < .05){ ball.x=.05; ball.vx=Math.abs(ball.vx); }
+    if(ball.x > .95){ ball.x=.95; ball.vx=-Math.abs(ball.vx); }
+    const px = state.my.x, py = state.my.y;
+    const dx = (ball.x-px)*W, dy=(ball.y-py)*H;
+    if(Math.hypot(dx,dy) < ball.r + state.my.radius){
+      ball.vy = -Math.abs(ball.vy) - 60;
+      ball.vx += state.my.vx * 180;
+      ball.owner = "local";
+      addParticles(ball.x*W,ball.y*H,18,config.accent2);
+      vibrate(20);
+    }
+    if(ball.y < -0.04){
+      if(state.solo){
+        ball.y = 0.02; ball.vy = Math.abs(ball.vy);
+      }else{
+        send({t:"ball", x:ball.x, vx:ball.vx, vy:ball.vy, owner:"remote"});
+        state.ball = null;
+      }
+    }else if(ball.y > 1.08){
+      state.op.score++;
+      gameOver(false);
+    }
+  }
+
+  function receiveBall(m){
+    state.ball = {x:clamp(m.x,0,1), y:-.02, vx:m.vx || 0, vy:Math.abs(m.vy || 460), r:16, owner:"remote"};
+  }
+
+  function updateDefend(dt){
+    state.waveTimer -= dt;
+    if(state.waveTimer <= 0){
+      state.waveTimer = Math.max(.35, 1.4 - state.my.score*.02);
+      if(state.solo || Math.random() < .5) spawnIncomingEnemy(Math.random(), 22 + Math.random()*16, false);
+      if(state.connected && Math.random() < .32) send({t:"enemy", x:Math.random(), hp:24});
+    }
+    for(let i=state.enemies.length-1;i>=0;i--){
+      const e = state.enemies[i];
+      e.y += e.vy*dt;
+      for(let j=state.bullets.length-1;j>=0;j--){
+        const b = state.bullets[j];
+        if(Math.hypot(b.x-e.x, b.y-e.y) < b.r + e.r){
+          e.hp -= 18*b.power;
+          state.bullets.splice(j,1);
+          addParticles(e.x,e.y,8,config.warn);
+          if(e.hp <= 0){
+            state.my.score++;
+            addParticles(e.x,e.y,22,config.good);
+            state.enemies.splice(i,1);
+          }
+          break;
         }
+      }
+      if(i < state.enemies.length && e.y > H*state.my.y){
+        hitPlayer(14);
+        state.enemies.splice(i,1);
+      }
+    }
+  }
 
-        function startDrawing(e) {
-            if (!State.imageLoaded) return;
-            e.preventDefault();
-            State.isDrawing = true;
-            State.hasMask = true;
-            
-            const coords = getCanvasCoords(e);
-            ctxMask.lineWidth = State.brushSize / State.scale; // Ajustăm grosimea relativ la zoom
-            ctxMask.beginPath();
-            ctxMask.moveTo(coords.x, coords.y);
-            
-            // Desenăm un punct chiar dacă e doar un click scurt
-            ctxMask.lineTo(coords.x + 0.1, coords.y);
-            ctxMask.stroke();
-            
-            updateBrushCursor(e);
-            UI.btnMagicErase.classList.remove('disabled');
-        }
+  function spawnIncomingEnemy(xNorm, hp, fromNet){
+    state.enemies.push({x:clamp(xNorm,0,1)*W,y:-20,vy:100+Math.random()*80,r:16,hp,fromNet});
+  }
 
-        function draw(e) {
-            updateBrushCursor(e);
-            if (!State.isDrawing) return;
-            e.preventDefault();
-            const coords = getCanvasCoords(e);
-            ctxMask.lineTo(coords.x, coords.y);
-            ctxMask.stroke();
-        }
+  function draw(){
+    ctx.save();
+    const sx = state.shake ? (Math.random()-.5)*state.shake : 0;
+    const sy = state.shake ? (Math.random()-.5)*state.shake : 0;
+    ctx.translate(sx,sy);
 
-        function stopDrawing() {
-            State.isDrawing = false;
-        }
+    const grd = ctx.createLinearGradient(0,0,0,H);
+    grd.addColorStop(0,"#080b1b");
+    grd.addColorStop(.55,"#050816");
+    grd.addColorStop(1,"#090b1f");
+    ctx.fillStyle = grd;
+    ctx.fillRect(-20,-20,W+40,H+40);
 
-        // --- STREAMING_CHUNK:Adding touch/mouse event listeners and UI interactions... ---
-        // Evenimente Mouse
-        UI.maskCanvas.addEventListener('mousedown', startDrawing);
-        window.addEventListener('mousemove', draw);
-        window.addEventListener('mouseup', stopDrawing);
-        
-        // Evenimente Touch (Mobile)
-        UI.maskCanvas.addEventListener('touchstart', startDrawing, { passive: false });
-        window.addEventListener('touchmove', draw, { passive: false });
-        window.addEventListener('touchend', stopDrawing);
+    for(const s of state.stars){
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(s.x*W,s.y*H,s.s,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
 
-        // Control Cursor Personalizat
-        function updateBrushCursor(e) {
-            if (!State.imageLoaded || (e.touches && e.type !== 'touchstart' && e.type !== 'touchmove')) return;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            UI.brushCursor.style.display = 'block';
-            UI.brushCursor.style.left = `${clientX}px`;
-            UI.brushCursor.style.top = `${clientY}px`;
-            UI.brushCursor.style.width = `${State.brushSize}px`;
-            UI.brushCursor.style.height = `${State.brushSize}px`;
-        }
-        
-        UI.workspace.addEventListener('mouseenter', () => { if(State.imageLoaded) UI.brushCursor.style.display = 'block'; });
-        UI.workspace.addEventListener('mouseleave', () => UI.brushCursor.style.display = 'none');
+    drawArenaLine();
+    if(config.mode === "deflect" && state.ball) drawBall(state.ball);
+    if(config.mode === "defend") for(const e of state.enemies) drawEnemy(e);
+    for(const b of state.bullets) drawBullet(b, config.playerColor);
+    for(const b of state.incoming) drawBullet(b, config.enemyColor, true);
+    drawOpponentGhost();
+    drawShip(state.my.x*W,H*state.my.y,config.playerColor,true);
 
-        // Controale UI Bottom
-        UI.brushSize.addEventListener('input', (e) => {
-            State.brushSize = e.target.value;
-            // Trigger cursor update
-            UI.brushCursor.style.width = `${State.brushSize}px`;
-            UI.brushCursor.style.height = `${State.brushSize}px`;
-        });
+    for(const p of state.particles){
+      ctx.globalAlpha = clamp(p.life*2,0,1);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
 
-        UI.btnClearMask.addEventListener('click', clearMask);
+    ctx.restore();
+  }
 
-        function clearMask() {
-            ctxMask.clearRect(0, 0, UI.maskCanvas.width, UI.maskCanvas.height);
-            State.hasMask = false;
-            UI.btnMagicErase.classList.add('disabled');
-        }
+  function drawArenaLine(){
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,.14)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10,12]);
+    ctx.beginPath();
+    ctx.moveTo(20, 54);
+    ctx.lineTo(W-20, 54);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(255,255,255,.45)";
+    ctx.font = "700 11px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("MARGINE CĂTRE CELĂLALT TELEFON", W/2, 36);
+    ctx.restore();
+  }
 
-        // --- 3. Undo / Istoric ---
-        function saveHistory() {
-            const currentData = ctxDisplay.getImageData(0, 0, UI.displayCanvas.width, UI.displayCanvas.height);
-            State.history.push(currentData);
-            if (State.history.length > State.maxHistory) State.history.shift();
-            
-            if (State.history.length > 1) UI.btnUndo.classList.remove('disabled');
-        }
+  function drawShip(x,y,color,local){
+    ctx.save();
+    const invBlink = local && state.my.inv > 0 && Math.floor(performance.now()/80)%2===0;
+    if(invBlink) ctx.globalAlpha = .45;
+    ctx.translate(x,y);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0,-24);
+    ctx.lineTo(19,20);
+    ctx.lineTo(0,11);
+    ctx.lineTo(-19,20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,.9)";
+    ctx.beginPath();
+    ctx.arc(0,0,5,0,Math.PI*2);
+    ctx.fill();
+    const dashReady = state.my.dash <= 0;
+    ctx.strokeStyle = dashReady ? "rgba(0,224,255,.55)" : "rgba(255,255,255,.15)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0,0,32,-Math.PI/2,-Math.PI/2 + Math.PI*2*(1-state.my.dash/config.dashCooldown));
+    ctx.stroke();
+    ctx.restore();
+  }
 
-        UI.btnUndo.addEventListener('click', () => {
-            if (State.history.length > 1) {
-                State.history.pop(); // Aruncăm starea curentă
-                const previousData = State.history[State.history.length - 1];
-                ctxDisplay.putImageData(previousData, 0, 0);
-                
-                if (State.history.length === 1) UI.btnUndo.classList.add('disabled');
-                clearMask();
-            }
-        });
+  function drawOpponentGhost(){
+    if(!state.connected && !state.solo) return;
+    const x = state.solo ? (1-state.my.x)*W : state.op.x*W;
+    ctx.save();
+    ctx.globalAlpha = .24;
+    ctx.translate(x, 83);
+    ctx.rotate(Math.PI);
+    ctx.fillStyle = config.enemyColor;
+    ctx.beginPath();
+    ctx.moveTo(0,-20);
+    ctx.lineTo(16,18);
+    ctx.lineTo(0,10);
+    ctx.lineTo(-16,18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
-        // --- 4. ALGORITMUL MAGIC (INPAINTING - CONTENT AWARE FILL) ---
-        // Deoarece nu putem folosi Rețele Neurale de 500MB într-un fișier HTML,
-        // Am scris un algoritm de "Edge-Bleed Inpainting" în JavaScript.
-        // Găsește pixelii roșii ai măștii și îi înlocuiește progresiv cu media
-        // pixelilor curați de pe margine, "topind" gaura dinspre exterior spre interior.
-        // --- STREAMING_CHUNK:Implementing the core Content-Aware Fill (Inpainting) algorithm in JS... ---
-        
-        UI.btnMagicErase.addEventListener('click', () => {
-            if (!State.hasMask) return;
-            
-            UI.loaderScreen.style.display = 'flex';
-            
-            // Oferim timp UI-ului să randeze loader-ul înainte de a îngheța thread-ul JS
-            setTimeout(() => {
-                processInpainting();
-                UI.loaderScreen.style.display = 'none';
-                clearMask();
-                saveHistory(); // Salvăm noua stare
-            }, 100);
-        });
+  function drawBullet(b,color,incoming=false){
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+    const g = ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,b.r*2.4);
+    g.addColorStop(0,"#fff");
+    g.addColorStop(.25,color);
+    g.addColorStop(1,"rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.r*2.2,0,Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
 
-        function processInpainting() {
-            const w = UI.displayCanvas.width;
-            const h = UI.displayCanvas.height;
-            const imgData = ctxDisplay.getImageData(0, 0, w, h);
-            const maskData = ctxMask.getImageData(0, 0, w, h);
-            
-            const pixels = imgData.data;
-            const mask = maskData.data;
-            
-            // 1. Creăm un array binar pentru a ști ușor ce e mascat (1) și ce nu (0)
-            let isMasked = new Uint8Array(w * h);
-            let maskedCount = 0;
-            for (let i = 0; i < mask.length; i += 4) {
-                // Dacă canalul Alpha al măștii este > 0, înseamnă că am desenat acolo
-                if (mask[i + 3] > 0) {
-                    isMasked[i / 4] = 1;
-                    maskedCount++;
-                }
-            }
+  function drawBall(ball){
+    const x = ball.x*W, y = ball.y*H;
+    ctx.save();
+    ctx.shadowColor = "#ffd166";
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = "#ffd166";
+    ctx.beginPath();
+    ctx.arc(x,y,ball.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.7)";
+    ctx.beginPath();
+    ctx.arc(x-5,y-5,5,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
 
-            if (maskedCount === 0) return;
+  function drawEnemy(e){
+    ctx.save();
+    ctx.translate(e.x,e.y);
+    ctx.shadowColor = config.danger;
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = config.danger;
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a = i/6*Math.PI*2;
+      const r = i%2 ? e.r*.6 : e.r;
+      ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,.8)";
+    ctx.fillRect(-10,-e.r-8,20,3);
+    ctx.fillStyle = config.good;
+    ctx.fillRect(-10,-e.r-8,20*clamp(e.hp/40,0,1),3);
+    ctx.restore();
+  }
 
-            // 2. Iterative Edge Bleed Algorithm (Fast Box-blur inward)
-            // Executăm multiple treceri (passes) pentru a umple de la margine spre centru
-            const passes = 30; // Mai multe treceri = acoperire mai mare, dar mai lent
-            const tempPixels = new Uint8ClampedArray(pixels);
+  function loop(now){
+    const dt = Math.min(.033, (now - state.last) / 1000 || .016);
+    state.last = now;
+    update(dt, now);
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
 
-            for (let pass = 0; pass < passes; pass++) {
-                let changed = false;
-                
-                // Copiem buffer-ul curent pentru a citi din starea anterioară și a scrie în cea nouă
-                const readPixels = new Uint8ClampedArray(tempPixels);
-                const readMask = new Uint8Array(isMasked);
+  // Inputs
+  function bindHold(el, key){
+    const down = (e)=>{ e.preventDefault(); state.keys[key]=true; el.classList.add("active"); if(key==="dash") dash(); };
+    const up = (e)=>{ e.preventDefault(); state.keys[key]=false; el.classList.remove("active"); };
+    el.addEventListener("pointerdown", down);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    el.addEventListener("contextmenu", e=>e.preventDefault());
+  }
+  bindHold(ui.leftBtn,"left");
+  bindHold(ui.rightBtn,"right");
+  bindHold(ui.fireBtn,"fire");
+  bindHold(ui.dashBtn,"dash");
 
-                for (let y = 0; y < h; y++) {
-                    for (let x = 0; x < w; x++) {
-                        const idx = y * w + x;
-                        
-                        // Dacă pixelul e mascat, încercăm să-i dăm o valoare
-                        if (readMask[idx] === 1) {
-                            let r = 0, g = 0, b = 0, count = 0;
+  ui.fireBtn.addEventListener("pointerup", () => {
+    const p = Math.max(1, state.my.charge || 1);
+    spawnBullet(p, p > .55 ? "charge" : "normal");
+    state.my.charge = 0;
+  });
 
-                            // Verificăm vecinii (kernel 3x3)
-                            for (let dy = -1; dy <= 1; dy++) {
-                                for (let dx = -1; dx <= 1; dx++) {
-                                    if (dx === 0 && dy === 0) continue;
-                                    const nx = x + dx;
-                                    const ny = y + dy;
-                                    
-                                    if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
-                                        const nIdx = ny * w + nx;
-                                        // Luăm culoarea doar de la pixelii NE-mascați (sau deja reparați în pașii anteriori)
-                                        if (readMask[nIdx] === 0) {
-                                            const pIdx = nIdx * 4;
-                                            r += readPixels[pIdx];
-                                            g += readPixels[pIdx + 1];
-                                            b += readPixels[pIdx + 2];
-                                            count++;
-                                        }
-                                    }
-                                }
-                            }
+  canvas.addEventListener("pointerdown",(e)=>{
+    if(e.target !== canvas) return;
+    state.pointer = e.clientX;
+  });
+  canvas.addEventListener("pointermove",(e)=>{
+    if(state.pointer !== null) state.pointer = e.clientX;
+  });
+  window.addEventListener("pointerup",()=>{ state.pointer = null; });
 
-                            // Dacă am găsit vecini buni pe marginea măștii, facem media culorilor
-                            if (count > 0) {
-                                const pIdx = idx * 4;
-                                tempPixels[pIdx] = r / count;
-                                tempPixels[pIdx + 1] = g / count;
-                                tempPixels[pIdx + 2] = b / count;
-                                tempPixels[pIdx + 3] = 255; // Opacitate completă
-                                
-                                // Marcăm pixelul ca reparat pentru runda următoare
-                                isMasked[idx] = 0; 
-                                changed = true;
-                            }
-                        }
-                    }
-                }
-                
-                // Dacă nu mai avem pixeli de umplut (obiect mic) sau am terminat trecerile
-                if (!changed) break; 
-            }
+  window.addEventListener("keydown",(e)=>{
+    if(e.key==="ArrowLeft" || e.key==="a") state.keys.left = true;
+    if(e.key==="ArrowRight" || e.key==="d") state.keys.right = true;
+    if(e.key===" "){ state.keys.fire=true; spawnBullet(1,"normal"); }
+    if(e.key==="Shift") dash();
+  });
+  window.addEventListener("keyup",(e)=>{
+    if(e.key==="ArrowLeft" || e.key==="a") state.keys.left = false;
+    if(e.key==="ArrowRight" || e.key==="d") state.keys.right = false;
+    if(e.key===" ") state.keys.fire=false;
+  });
 
-            // 3. (Opțional dar recomandat) Un mic Blur Gaussian final STRICT pe zona reparată
-            // pentru a amesteca mai natural pixelii aduși de pe margini
-            // (Îl sărim aici pentru a păstra performanța JS în browser)
+  let tiltGamma = 0;
+  window.addEventListener("deviceorientation",(e)=>{
+    if(typeof e.gamma === "number") tiltGamma = e.gamma;
+  }, true);
 
-            // Suprascriem imaginea vizibilă cu datele procesate
-            ctxDisplay.putImageData(new ImageData(tempPixels, w, h), 0, 0);
-        }
+  async function enableTilt(){
+    try{
+      if(typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function"){
+        const res = await DeviceOrientationEvent.requestPermission();
+        if(res !== "granted") return toast("Permisiune tilt refuzată.");
+      }
+      config.tiltEnabled = true;
+      config.control = "tilt";
+      ui.controlMode.value = "tilt";
+      toast("Tilt activat.");
+    }catch(e){
+      toast("Tilt indisponibil pe acest browser.");
+    }
+  }
 
-        // --- 5. Export ---
-        // --- STREAMING_CHUNK:Finalizing UI logic and download export... ---
-        UI.btnExport.addEventListener('click', () => {
-            if (!State.imageLoaded) return;
-            
-            // Convertim direct imaginea din displayCanvas într-un fișier
-            const dataURL = UI.displayCanvas.toDataURL('image/jpeg', 0.95); // 95% Calitate
-            
-            const a = document.createElement('a');
-            a.href = dataURL;
-            a.download = `CMN_Retouch_${Date.now()}.jpg`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
+  // UI events
+  ui.menuBtn.onclick = showMenu;
+  ui.hideMenuBtn.onclick = hideMenu;
+  ui.hostBtn.onclick = host;
+  ui.joinBtn.onclick = () => { ui.offerIn.focus(); toast("Lipește Host code în zona Join."); };
+  ui.resetNetBtn.onclick = () => closePeer(true);
+  ui.createAnswerBtn.onclick = createAnswer;
+  ui.acceptAnswerBtn.onclick = acceptAnswer;
+  ui.copyOfferBtn.onclick = () => copyText(ui.offerOut.value);
+  ui.copyAnswerBtn.onclick = () => copyText(ui.answerOut.value);
+  ui.startBtn.onclick = () => startRound(true);
+  ui.pauseBtn.onclick = pauseToggle;
+  ui.soloBtn.onclick = soloMode;
+  ui.enableTiltBtn.onclick = enableTilt;
+  ui.calibrateBtn.onclick = () => { config.tiltZero = tiltGamma; toast("Calibrat."); };
+  ui.controlMode.onchange = () => { config.control = ui.controlMode.value; if(config.control === "tilt") enableTilt(); };
+  ui.flipBtn.onclick = () => { config.flipped = !config.flipped; toast(config.flipped ? "Control inversat." : "Control normal."); };
 
-    </script>
+  ui.modeTabs.addEventListener("click",(e)=>{
+    const btn = e.target.closest("button[data-mode]");
+    if(btn) selectMode(btn.dataset.mode, true);
+  });
+
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden) state.paused = true;
+  });
+
+  // Small helper: long press fire charges, quick tap fires normal.
+  setInterval(()=>{
+    if(state.keys.fire && state.running && state.my.cooldown <= 0 && state.my.charge > .65){
+      // Visual charge particles only; actual shot on release.
+      if(Math.random() < .25) addParticles(state.my.x*W,H*state.my.y-20,2,config.warn);
+    }
+  },60);
+
+  // Welcome
+  updateUI();
+  setConnected(false, "Offline");
+  toast("Deschide meniul pentru Host / Join.");
+})();
+</script>
 </body>
 </html>

@@ -85,16 +85,31 @@
         .timer-draw { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
         canvas { display: block; width: 100vw; height: 100vh; background: #ffffff; }
 
+        /* --- TOOLBAR AVANSAT --- */
         .toolbar {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--glass-bg); backdrop-filter: blur(20px); padding: 10px 20px; border-radius: 20px;
-            display: flex; gap: 15px; align-items: center; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: var(--glass-bg); backdrop-filter: blur(20px); padding: 15px; border-radius: 20px;
+            display: flex; gap: 10px; align-items: center; justify-content: center; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            flex-wrap: wrap; width: 95vw; max-width: 600px; border: 1px solid rgba(255,255,255,0.2);
         }
-        .tool-icon { background: #334155; border: none; width: 40px; height: 40px; border-radius: 12px; cursor: pointer; color: white; transition: 0.2s; }
-        .tool-icon.active { background: var(--primary); }
-        input[type="color"] { -webkit-appearance: none; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; overflow: hidden; padding: 0; }
+        
+        .color-palette { display: flex; gap: 5px; align-items: center; }
+        .qc { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); cursor: pointer; transition: 0.2s; }
+        .qc:hover { transform: scale(1.1); border-color: white; }
+        .qc.selected { border-color: white; transform: scale(1.1); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        
+        input[type="color"] { -webkit-appearance: none; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; overflow: hidden; padding: 0; border: 2px solid rgba(255,255,255,0.3); }
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+        .tool-icon { background: #334155; border: none; width: 45px; height: 45px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; color: white; transition: 0.2s; display: flex; justify-content: center; align-items: center; }
+        .tool-icon:hover { background: #475569; }
+        .tool-icon.active { background: var(--primary); box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); }
+
+        .btn-done { background: #10b981; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 12px; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
+        .btn-done:hover { background: #059669; }
+
+        .divider { width: 1px; height: 30px; background: rgba(255,255,255,0.2); margin: 0 5px; }
 
         /* --- Faza 3: Showcase & Votare Desen --- */
         .showcase-grid {
@@ -111,10 +126,11 @@
 
         /* --- Notificări --- */
         .toast {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white;
-            padding: 10px 20px; border-radius: 20px; z-index: 100; opacity: 0; transition: 0.3s; pointer-events: none;
+            position: absolute; top: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: white;
+            padding: 12px 25px; border-radius: 30px; font-weight: 600; z-index: 100; opacity: 0; transition: 0.4s; pointer-events: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 1px solid var(--primary); font-size: 1.1rem;
         }
-        .toast.show { opacity: 1; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(10px); }
     </style>
 </head>
 <body>
@@ -186,11 +202,31 @@
         <canvas id="canvas"></canvas>
         
         <div class="toolbar">
-            <input type="color" id="colorPicker" value="#000000">
-            <input type="range" id="brushSize" min="1" max="30" value="5">
-            <button class="tool-icon active" id="btnPen">🖌️</button>
-            <button class="tool-icon" id="btnEraser">🧹</button>
-            <button class="tool-icon" id="btnClear" style="background: var(--primary);">🗑️</button>
+            <div class="color-palette">
+                <button class="qc selected" style="background:#000000" onclick="setColor('#000000', this)"></button>
+                <button class="qc" style="background:#ef4444" onclick="setColor('#ef4444', this)"></button>
+                <button class="qc" style="background:#3b82f6" onclick="setColor('#3b82f6', this)"></button>
+                <button class="qc" style="background:#10b981" onclick="setColor('#10b981', this)"></button>
+                <button class="qc" style="background:#f59e0b" onclick="setColor('#f59e0b', this)"></button>
+                <button class="qc" style="background:#ffffff; border-color: #cbd5e1;" onclick="setColor('#ffffff', this)"></button>
+                <input type="color" id="colorPicker" value="#000000" title="Alege altă culoare">
+            </div>
+            <div class="divider"></div>
+            <input type="range" id="brushSize" min="2" max="50" value="6" style="width: 80px;">
+            <div class="divider"></div>
+            <button class="tool-icon active" id="btnPen" title="Pensulă">🖌️</button>
+            <button class="tool-icon" id="btnEraser" title="Radieră">🧹</button>
+            <button class="tool-icon" id="btnUndo" title="Înapoi (Undo)" onclick="undoDraw()">↩️</button>
+            <div class="divider"></div>
+            <button class="btn-done" onclick="submitEarly()">AM TERMINAT</button>
+        </div>
+    </div>
+
+    <!-- OVERLAY AȘTEPTARE DUPĂ CE DAI 'AM TERMINAT' -->
+    <div id="waitOverlay" class="screen hidden" style="z-index: 30; background: rgba(15, 23, 42, 0.9);">
+        <div class="panel" style="background: none; border: none; box-shadow: none;">
+            <h2 style="color: var(--primary); font-size: 2rem;">Desen Salvat!</h2>
+            <p style="color: #94a3b8; margin-top: 10px;">Așteptăm ca restul jucătorilor să termine...</p>
         </div>
     </div>
 
@@ -214,8 +250,8 @@
     </div>
 
     <script>
-        // --- BAZĂ DE DATE CUVINTE (100 cuvinte) ---
-        const wordsDB = ["Casă","Mașină","Copac","Soare","Măr","Pisică","Câine","Stea","Lună","Munte","Râu","Pădure","Floare","Pasăre","Pește","Urs","Iepure","Vulpe","Lup","Elefant","Leu","Tigru","Maimuță","Șarpe","Broscuță","Fluture","Albină","Păianjen","Melc","Vierme","Nor","Ploaie","Zăpadă","Vânt","Furtună","Foc","Apă","Pământ","Nisip","Piatră","Drum","Pod","Barcă","Tren","Avion","Elicopter","Bicicletă","Trotinetă","Patine","Minge","Păpușă","Jucărie","Carte","Caiet","Creion","Stilou","Ghiozdan","Tablă","Bancă","Scaun","Masă","Pat","Dulap","Ușă","Fereastră","Acoperiș","Perete","Podea","Covor","Perdea","Televizor","Telefon","Calculator","Lustră","Bec","Priză","Fier de călcat","Aspirator","Frigider","Aragaz","Cuptor","Chiuvetă","Cadă","Duș","Săpun","Șampon","Prosop","Perie","Pieptene","Oglindă","Pălărie","Căciulă","Fular","Mănuși","Șosete","Papuci","Ghete","Cizme","Pantaloni","Cămașă"];
+        // --- BAZĂ DE DATE CUVINTE ---
+        const wordsDB = ["Pisică", "Robot", "Extraterestru", "Pizza", "Castel", "Astronaut", "Pompier", "Dinozaur", "Supererou", "Zombi", "Vampir", "Vrăjitoare", "Sirenă", "Unicorn", "Balaur", "Fantomă", "Clovn", "Pirat", "Ninja", "Spion", "Rege", "Prințesă", "Cangur", "Pinguin", "Crocodil", "Rechin", "Tornado", "Vulcan", "Semafor", "Chitară", "Pian", "Tobe", "Tractor", "Motocicletă", "OZN"];
 
         // --- STARE GLOBALĂ JUCĂTOR LOCAL ---
         let myName = "";
@@ -224,16 +260,17 @@
         
         // --- STARE REȚEA (PeerJS) ---
         let peer = null;
-        let hostConnection = null; // Pentru clienți
-        let clientConnections = []; // Pentru gazdă
+        let hostConnection = null; 
+        let clientConnections = []; 
         
         // --- STARE JOC (Gestionată de GAZDĂ) ---
         let gameState = {
-            phase: 'LOBBY', // LOBBY, VOTE_WORD, DRAWING, SHOWCASE, RESULTS
+            phase: 'LOBBY', // LOBBY, VOTE_WORD, DRAWING, GATHERING, SHOWCASE, RESULTS
             players: [], // { id, name, voteWordIndex, drawingData, voteDrawingId }
             wordOptions: [],
             selectedWord: "",
-            timer: 0
+            timer: 0,
+            tieRound: 0 // Trackează numărul de egalități
         };
         let hostInterval = null;
 
@@ -246,7 +283,7 @@
         function showToast(msg) {
             const t = document.getElementById('toastBox');
             t.innerText = msg; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
+            setTimeout(() => t.classList.remove('show'), 3500);
         }
 
         function goToMenu() {
@@ -272,7 +309,6 @@
                 document.getElementById('btnStartGame').style.display = 'block';
                 document.getElementById('waitText').style.display = 'none';
                 
-                // Adaugă gazda în lista de jucători
                 gameState.players.push({ id: myId, name: myName, voteWordIndex: -1, drawingData: null, voteDrawingId: null });
                 updateLobbyUI();
             });
@@ -283,13 +319,9 @@
                     setTimeout(() => conn.close(), 1000);
                     return;
                 }
-
                 clientConnections.push(conn);
-                
                 conn.on('data', (data) => handleDataAsHost(conn, data));
-                
                 conn.on('close', () => {
-                    // Elimină jucătorul deconectat
                     clientConnections = clientConnections.filter(c => c !== conn);
                     gameState.players = gameState.players.filter(p => p.id !== conn.peer);
                     broadcastState();
@@ -310,7 +342,7 @@
             else if (data.type === 'VOTE_WORD' && gameState.phase === 'VOTE_WORD') {
                 if(player) player.voteWordIndex = data.index;
             }
-            else if (data.type === 'SUBMIT_DRAWING' && gameState.phase === 'DRAWING') {
+            else if (data.type === 'SUBMIT_DRAWING' && (gameState.phase === 'DRAWING' || gameState.phase === 'GATHERING')) {
                 if(player) player.drawingData = data.image;
                 checkAllDrawingsSubmitted();
             }
@@ -323,21 +355,25 @@
             if(!isHost) return;
             const stateToSend = { type: 'STATE', state: gameState };
             clientConnections.forEach(c => c.send(stateToSend));
-            handleStateUpdate(gameState); // Aplica și local pentru gazdă
+            handleStateUpdate(gameState); // Aplica local
+        }
+        
+        function broadcastEvent(event) {
+            if(!isHost) return;
+            clientConnections.forEach(c => c.send(event));
+            handleClientEvent(event);
         }
 
         // --- SISTEM DE FAZE (Doar gazda controlează) ---
         function startGame() {
             if(gameState.players.length < 2) return showToast("Ai nevoie de minim 2 jucători!");
             
-            // Faza 1: Alege 3 cuvinte
             let shuffled = wordsDB.sort(() => 0.5 - Math.random());
             gameState.wordOptions = shuffled.slice(0, 3);
-            
-            // Reset state
             gameState.players.forEach(p => { p.voteWordIndex = -1; p.drawingData = null; p.voteDrawingId = null; });
+            gameState.tieRound = 0;
             
-            setPhase('VOTE_WORD', 5); // 5 secunde vot
+            setPhase('VOTE_WORD', 5);
         }
 
         function setPhase(newPhase, time) {
@@ -359,31 +395,51 @@
 
         function handlePhaseTimeout(oldPhase) {
             if(oldPhase === 'VOTE_WORD') {
-                // Calculează cuvântul câștigător
                 let counts = [0, 0, 0];
                 gameState.players.forEach(p => { if(p.voteWordIndex !== -1) counts[p.voteWordIndex]++; });
                 let maxIndex = counts.indexOf(Math.max(...counts));
                 gameState.selectedWord = gameState.wordOptions[maxIndex];
-                
-                setPhase('DRAWING', 120); // 120 secunde pentru desen
+                setPhase('DRAWING', 120); 
             }
             else if (oldPhase === 'DRAWING') {
-                // Timpul a expirat, cere desenele
-                forceSubmitDrawings();
-                // Așteptăm 2 secunde sa se incarce imaginile pe retea, apoi trecem la showcase
-                setTimeout(() => { setPhase('SHOWCASE', 15); }, 2000); 
+                // Timpul a expirat dar nu toți au trimis.
+                // Mutăm faza la GATHERING, ceea ce forțează clienții să trimită.
+                setPhase('GATHERING', 5); 
+            }
+            else if (oldPhase === 'GATHERING') {
+                // Așteptarea s-a terminat, mergem la Showcase indiferent.
+                setPhase('SHOWCASE', 15);
             }
             else if (oldPhase === 'SHOWCASE') {
+                // VERIFICĂM EGALITATEA!
+                let counts = {};
+                gameState.players.forEach(p => counts[p.id] = 0);
+                gameState.players.forEach(p => { if(p.voteDrawingId) counts[p.voteDrawingId]++; });
+                
+                let maxVotes = Math.max(...Object.values(counts));
+                let winners = Object.keys(counts).filter(id => counts[id] === maxVotes);
+                let totalVotes = gameState.players.filter(p => p.voteDrawingId !== null).length;
+
+                // Dacă e egalitate (inclusiv toți au 0 voturi, sau mai mulți au maxim)
+                if (winners.length > 1 && totalVotes > 0) {
+                    gameState.players.forEach(p => p.voteDrawingId = null); // Ștergem voturile
+                    gameState.tieRound++; // Incrementăm runda de egalitate pt a re-randa ecranul
+                    broadcastState();
+                    broadcastEvent({ type: 'TOAST', msg: "EGALITATE! Votați din nou pentru departajare!" });
+                    setPhase('SHOWCASE', 15); // Repornim timer-ul de votare
+                    return;
+                }
+
                 setPhase('RESULTS', 0);
             }
         }
 
         function checkAllDrawingsSubmitted() {
-            if(gameState.phase !== 'DRAWING') return;
+            if(gameState.phase !== 'DRAWING' && gameState.phase !== 'GATHERING') return;
             let allSubmitted = gameState.players.every(p => p.drawingData !== null);
             if(allSubmitted) {
                 clearInterval(hostInterval);
-                setPhase('SHOWCASE', 15); // 15 secunde pentru votat
+                setPhase('SHOWCASE', 15); 
             }
         }
 
@@ -405,7 +461,8 @@
 
                 hostConnection.on('data', (data) => {
                     if(data.type === 'STATE') handleStateUpdate(data.state);
-                    if(data.type === 'ERROR') { showToast(data.msg); switchScreen('menuScreen'); }
+                    else if(data.type === 'ERROR') { showToast(data.msg); switchScreen('menuScreen'); }
+                    else handleClientEvent(data);
                 });
 
                 hostConnection.on('close', () => {
@@ -414,14 +471,21 @@
                 });
             });
         }
+        
+        function handleClientEvent(event) {
+            if(event.type === 'TOAST') {
+                showToast(event.msg);
+            }
+        }
 
-        // --- SINCRONIZARE UI CURENT (Ambele roluri) ---
+        // --- SINCRONIZARE UI CURENT ---
         let currentPhaseRendered = "";
+        let lastTieRound = 0;
 
         function handleStateUpdate(newState) {
-            gameState = newState; // Suprascrie local
+            let oldPhase = currentPhaseRendered;
+            gameState = newState;
 
-            // Actualizare ecran specific
             if(gameState.phase === 'LOBBY') {
                 if(currentPhaseRendered !== 'LOBBY') switchScreen('lobbyScreen');
                 updateLobbyUI();
@@ -436,14 +500,26 @@
             else if(gameState.phase === 'DRAWING') {
                 if(currentPhaseRendered !== 'DRAWING') {
                     switchScreen('drawingScreen');
+                    document.getElementById('waitOverlay').classList.add('hidden'); // ascunde overlay-ul
+                    hasSubmittedLocalDrawing = false; // resetare flag local
                     document.getElementById('drawWordLabel').innerText = gameState.selectedWord;
-                    initCanvas(); // Resetează tabla
+                    initCanvas();
                 }
                 document.getElementById('drawTimer').innerText = gameState.timer;
             }
+            else if(gameState.phase === 'GATHERING') {
+                // Dacă gazda a schimbat faza la GATHERING (a expirat timpul) și eu nu am trimis desenul, îl trimit ACUM!
+                if(oldPhase === 'DRAWING' && !hasSubmittedLocalDrawing) {
+                    forceExtractAndSubmit();
+                }
+                document.getElementById('drawWordLabel').innerText = "Colectare...";
+            }
             else if(gameState.phase === 'SHOWCASE') {
-                if(currentPhaseRendered !== 'SHOWCASE') {
+                // Re-randăm dacă de abia am intrat în fază SAU dacă e o rundă nouă de egalitate (Tie-Breaker)
+                if(currentPhaseRendered !== 'SHOWCASE' || lastTieRound !== gameState.tieRound) {
+                    lastTieRound = gameState.tieRound;
                     switchScreen('showcaseScreen');
+                    document.getElementById('waitOverlay').classList.add('hidden');
                     renderShowcase();
                 }
                 document.getElementById('showcaseTimer').innerText = gameState.timer;
@@ -471,13 +547,11 @@
             }
         }
 
-        // --- ACȚIUNI JUCĂTOR (TRIMITERE SPRE GAZDA) ---
         function sendToHost(data) {
             if(isHost) handleDataAsHost({peer: myId}, data);
             else if(hostConnection) hostConnection.send(data);
         }
 
-        // --- FAZA 1: VOTARE CUVÂNT UI ---
         function renderWordOptions() {
             const container = document.getElementById('wordOptionsContainer');
             container.innerHTML = "";
@@ -494,13 +568,35 @@
             });
         }
 
-        // --- FAZA 2: MOTOR DE DESENARE (LOCAL) ---
+        // --- FAZA 2: MOTOR DE DESENARE & UNDO ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
         let brushColor = '#000000';
-        let brushSz = 5;
+        let brushSz = 6;
         let isEraser = false;
+        
+        let undoStack = []; // Salvează stările canvasului
+        let hasSubmittedLocalDrawing = false;
+
+        function saveState() {
+            undoStack.push(canvas.toDataURL('image/png'));
+            if(undoStack.length > 15) undoStack.shift(); // Păstrăm ultimele 15 acțiuni
+        }
+
+        function undoDraw() {
+            if(undoStack.length > 0) {
+                let imgData = undoStack.pop();
+                let img = new Image();
+                img.src = imgData;
+                img.onload = () => {
+                    ctx.clearRect(0,0,canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                }
+            } else {
+                initCanvas(); // Dacă s-a ajuns la final, curăță tot
+            }
+        }
 
         function initCanvas() {
             canvas.width = window.innerWidth;
@@ -508,9 +604,10 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            undoStack = []; // Resetăm undo-ul la rundă nouă
         }
 
-        function startDraw(e) { isDrawing = true; draw(e); }
+        function startDraw(e) { saveState(); isDrawing = true; draw(e); }
         function endDraw() { isDrawing = false; ctx.beginPath(); }
         function draw(e) {
             if(!isDrawing) return;
@@ -535,16 +632,37 @@
         canvas.addEventListener('touchend', endDraw);
 
         // Toolbar Tools
-        document.getElementById('colorPicker').addEventListener('input', e => { brushColor = e.target.value; isEraser = false; document.getElementById('btnPen').classList.add('active'); document.getElementById('btnEraser').classList.remove('active'); });
+        function setColor(col, btnElement) {
+            brushColor = col; isEraser = false;
+            document.getElementById('btnPen').classList.add('active');
+            document.getElementById('btnEraser').classList.remove('active');
+            // Update UI for quick colors
+            if(btnElement) {
+                document.querySelectorAll('.qc').forEach(b => b.classList.remove('selected'));
+                btnElement.classList.add('selected');
+            }
+        }
+        document.getElementById('colorPicker').addEventListener('input', e => {
+            document.querySelectorAll('.qc').forEach(b => b.classList.remove('selected'));
+            setColor(e.target.value, null);
+        });
+        
         document.getElementById('brushSize').addEventListener('input', e => brushSz = e.target.value);
         document.getElementById('btnPen').addEventListener('click', e => { isEraser = false; e.target.classList.add('active'); document.getElementById('btnEraser').classList.remove('active'); });
         document.getElementById('btnEraser').addEventListener('click', e => { isEraser = true; e.target.classList.add('active'); document.getElementById('btnPen').classList.remove('active'); });
-        document.getElementById('btnClear').addEventListener('click', initCanvas);
 
-        // Submit Automat
-        function forceSubmitDrawings() {
-            // Se apelează la sfârșitul timpului, clientul extrage poza
-            const dataURL = canvas.toDataURL('image/jpeg', 0.5); // Calitate redusă pt a trimite rapid prin rețea
+        // Butonul "AM TERMINAT"
+        function submitEarly() {
+            if(hasSubmittedLocalDrawing) return;
+            forceExtractAndSubmit();
+            document.getElementById('waitOverlay').classList.remove('hidden'); // Afișăm ecranul de așteptare
+        }
+
+        // Extrage poza și o trimite la gazdă
+        function forceExtractAndSubmit() {
+            hasSubmittedLocalDrawing = true;
+            // Calitate 0.6 pentru viteză mare de transfer
+            const dataURL = canvas.toDataURL('image/jpeg', 0.6); 
             sendToHost({ type: 'SUBMIT_DRAWING', image: dataURL });
         }
 
@@ -553,7 +671,7 @@
             const grid = document.getElementById('showcaseGrid');
             grid.innerHTML = "";
             gameState.players.forEach(p => {
-                if(!p.drawingData) return; // A sărit sau s-a deconectat
+                if(!p.drawingData) return;
                 let card = document.createElement('div');
                 card.className = 'drawing-card';
                 card.innerHTML = `
@@ -562,14 +680,13 @@
                     <div class="votes-badge" id="voteCount-${p.id}">0</div>
                 `;
                 
-                // Poți vota doar pe alții, nu pe tine
-                if(p.id !== myId) {
-                    card.onclick = () => {
-                        document.querySelectorAll('.drawing-card').forEach(c => c.classList.remove('selected'));
-                        card.classList.add('selected');
-                        sendToHost({ type: 'VOTE_DRAWING', targetId: p.id });
-                    };
-                }
+                // Acum POȚI vota pentru oricine, inclusiv pentru tine (rezolvă bug-ul de 2 jucători)
+                card.onclick = () => {
+                    document.querySelectorAll('.drawing-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    sendToHost({ type: 'VOTE_DRAWING', targetId: p.id });
+                };
+                
                 grid.appendChild(card);
             });
             
@@ -589,7 +706,6 @@
 
         // --- FAZA 4: REZULTATE UI ---
         function renderResults() {
-            // Calculăm cine are cele mai multe voturi
             let counts = {};
             gameState.players.forEach(p => counts[p.id] = 0);
             gameState.players.forEach(p => { if(p.voteDrawingId) counts[p.voteDrawingId]++; });
@@ -597,10 +713,11 @@
             let winnerId = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
             let winner = gameState.players.find(p => p.id === winnerId);
 
-            if(winner && winner.drawingData) {
+            if(winner && winner.drawingData && counts[winnerId] > 0) {
                 document.getElementById('winnerImg').src = winner.drawingData;
                 document.getElementById('winnerName').innerText = `Câștigător: ${winner.name} 🏆`;
             } else {
+                document.getElementById('winnerImg').src = "";
                 document.getElementById('winnerName').innerText = "Nimeni nu a câștigat.";
             }
 
@@ -612,7 +729,6 @@
         function restartToLobby() {
             if(!isHost) return;
             setPhase('LOBBY', 0);
-            // Curățăm voturile trecute
             gameState.players.forEach(p => { p.voteWordIndex = -1; p.drawingData = null; p.voteDrawingId = null; });
             broadcastState();
         }

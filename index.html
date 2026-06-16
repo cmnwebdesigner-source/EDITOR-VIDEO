@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CMN Dual Strike</title>
+    <title>CMN Dual Strike Pro</title>
     
-    <!-- Librării Externe pentru Conexiune P2P și QR Code -->
+    <!-- Librării Externe: PeerJS pentru P2P și QRCode pentru conectare rapidă -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
@@ -13,9 +13,10 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap');
 
         :root {
-            --p1-color: #00f0ff; /* Cyan pentru Host */
+            --p1-color: #00e5ff; /* Cyan pentru Host */
             --p2-color: #ff0055; /* Magenta pentru Guest */
-            --bg-color: #0a0a0f;
+            --bg-color: #05050a;
+            --ui-glass: rgba(20, 20, 30, 0.8);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Orbitron', sans-serif; }
@@ -25,202 +26,250 @@
             color: white;
             overflow: hidden;
             width: 100vw; height: 100vh;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            touch-action: none; /* Previne gesturile native pe mobil */
         }
 
-        /* Screens */
+        /* Sistem de Ecrane (Screens) */
         .screen {
             position: absolute; inset: 0;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: var(--bg-color); z-index: 10;
-            transition: opacity 0.3s;
+            background: radial-gradient(circle at center, #111522 0%, var(--bg-color) 100%);
+            z-index: 10;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
-        .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+        .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; transform: scale(1.05); }
 
-        h1 { font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; text-align: center; }
-        .glow-text { text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        /* Typography & Neon Effects */
+        h1 { 
+            font-size: 3rem; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 40px; text-align: center; 
+            text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px var(--p1-color);
+        }
+        .title-dual { color: white; }
+        .title-strike { color: var(--p2-color); font-weight: 900; }
 
+        /* Butoane Premium */
         .btn {
-            background: transparent; border: 2px solid white; color: white;
-            padding: 15px 40px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px;
-            margin: 10px; border-radius: 30px; cursor: pointer; transition: 0.2s;
-            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+            background: var(--ui-glass); backdrop-filter: blur(10px);
+            border: 2px solid white; color: white;
+            padding: 18px 50px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px;
+            margin: 12px; border-radius: 40px; cursor: pointer; transition: all 0.2s;
+            position: relative; overflow: hidden; font-weight: 700;
+        }
+        .btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
         }
         .btn:active { transform: scale(0.95); }
-        .btn-host { border-color: var(--p1-color); color: var(--p1-color); box-shadow: 0 0 15px var(--p1-color); }
-        .btn-join { border-color: var(--p2-color); color: var(--p2-color); box-shadow: 0 0 15px var(--p2-color); }
+        .btn-host { border-color: var(--p1-color); box-shadow: 0 0 20px rgba(0, 229, 255, 0.3); color: var(--p1-color); }
+        .btn-join { border-color: var(--p2-color); box-shadow: 0 0 20px rgba(255, 0, 85, 0.3); color: var(--p2-color); }
 
-        /* Lobby Screen */
-        .qr-container {
-            background: white; padding: 15px; border-radius: 10px; margin: 20px 0;
-            box-shadow: 0 0 20px var(--p1-color);
+        /* Meniuri Secundare (Lobby/Join) */
+        .panel {
+            background: var(--ui-glass); padding: 30px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px);
+            display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
-        .info-text { font-size: 0.9rem; color: #888; text-align: center; max-width: 80%; line-height: 1.5; margin-bottom: 20px; }
-        .code-display { font-size: 1.5rem; letter-spacing: 3px; font-weight: bold; color: var(--p1-color); margin-bottom: 10px; }
+        
+        .qr-wrapper {
+            background: white; padding: 15px; border-radius: 15px; margin: 20px 0;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+        }
 
-        /* Join Screen */
-        input[type="text"] {
-            background: transparent; border: none; border-bottom: 2px solid var(--p2-color);
-            color: white; font-size: 1.5rem; text-align: center; padding: 10px; outline: none;
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; width: 80%;
+        .code-input {
+            background: rgba(0,0,0,0.5); border: 2px solid var(--p2-color);
+            color: white; font-size: 2rem; text-align: center; padding: 15px; border-radius: 15px;
+            outline: none; text-transform: uppercase; letter-spacing: 5px; margin: 20px 0; width: 100%;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8); font-family: monospace;
         }
 
         /* Game UI */
         #gameUI {
             position: absolute; inset: 0; pointer-events: none; z-index: 20;
-            display: flex; justify-content: space-between; padding: 20px;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 30px 20px;
         }
-        .health-bar { display: flex; gap: 10px; }
-        .heart { width: 20px; height: 20px; background: white; border-radius: 50%; box-shadow: 0 0 10px white; transition: 0.3s; }
-        .heart.lost { background: transparent; border: 2px solid #555; box-shadow: none; }
-
-        .enemy-status { font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-
-        canvas { display: block; width: 100%; height: 100%; background: radial-gradient(circle at center, #111 0%, #000 100%); touch-action: none; }
+        .hud-top { display: flex; justify-content: space-between; align-items: flex-start; transform: rotate(180deg); }
+        .hud-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
         
-        #connectionStatus { position: absolute; bottom: 20px; font-size: 12px; color: #666; }
+        .health-bar { display: flex; gap: 8px; }
+        .heart { width: 25px; height: 10px; background: white; border-radius: 5px; box-shadow: 0 0 15px white; transition: 0.3s; }
+        .heart.lost { background: rgba(255,255,255,0.1); box-shadow: none; border: 1px solid rgba(255,255,255,0.2); }
+
+        .player-label { font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 5px; }
+
+        canvas { display: block; width: 100%; height: 100%; }
         
-        /* Modal Info */
-        .msg-box {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 10px 20px;
-            border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); font-size: 12px;
-            z-index: 100; transition: opacity 0.5s; opacity: 0;
+        /* Notificări Toast */
+        .toast {
+            position: absolute; top: 40px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: rgba(0,0,0,0.8); color: white; padding: 12px 25px;
+            border-radius: 30px; border: 1px solid rgba(255,255,255,0.2); font-size: 14px;
+            z-index: 100; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: bold; letter-spacing: 1px;
         }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     </style>
 </head>
 <body>
 
-    <div class="msg-box" id="msgBox">Conectare...</div>
+    <!-- Notificări -->
+    <div class="toast" id="toastBox">Mesaj de sistem</div>
 
-    <!-- MAIN MENU -->
+    <!-- ECRAN 1: MENIU PRINCIPAL -->
     <div class="screen" id="menuScreen">
-        <h1 class="glow-text">DUAL<br><span style="font-size: 1.5rem; color: #888;">STRIKE</span></h1>
+        <h1><span class="title-dual">DUAL</span><br><span class="title-strike">STRIKE</span></h1>
         <button class="btn btn-host" onclick="hostGame()">Gazduiește Joc</button>
         <button class="btn btn-join" onclick="showJoinScreen()">Alătură-te</button>
+        <div style="position: absolute; bottom: 20px; font-size: 10px; color: #555; letter-spacing: 2px;">V 2.0 REALTIME ENGINE</div>
     </div>
 
-    <!-- HOST LOBBY -->
+    <!-- ECRAN 2: LOBBY GAZDĂ -->
     <div class="screen hidden" id="hostScreen">
-        <h2 style="color: var(--p1-color);">Așteptare Jucător...</h2>
-        <div class="info-text">Prietenul tău trebuie să scaneze acest cod QR pentru a se conecta direct.</div>
-        <div class="qr-container" id="qrcode"></div>
-        <div class="info-text">Sau introduceți codul manual:</div>
-        <div class="code-display" id="roomIdDisplay">...</div>
-        <button class="btn" style="font-size: 0.9rem;" onclick="location.reload()">Anulează</button>
+        <div class="panel">
+            <h2 style="color: var(--p1-color); margin-bottom: 10px;">LOBBY GAZDĂ</h2>
+            <p style="font-size: 12px; color: #aaa; text-align: center;">Prietenul tău trebuie să scaneze acest cod QR sau să introducă codul de mai jos.</p>
+            
+            <div class="qr-wrapper" id="qrcode"></div>
+            
+            <div style="font-size: 2rem; font-weight: 900; letter-spacing: 5px; color: white;" id="roomIdDisplay">...</div>
+            
+            <button class="btn" style="margin-top: 30px; font-size: 14px; padding: 10px 30px;" onclick="location.reload()">Anulează</button>
+        </div>
     </div>
 
-    <!-- JOIN SCREEN -->
+    <!-- ECRAN 3: CONECTARE OASPETE -->
     <div class="screen hidden" id="joinScreen">
-        <h2 style="color: var(--p2-color); margin-bottom: 20px;">Conectare</h2>
-        <div class="info-text">Introdu codul afișat pe ecranul prietenului tău.</div>
-        <input type="text" id="joinCodeInput" placeholder="EX: A1B2C" maxlength="6">
-        <button class="btn btn-join" onclick="joinGameFromInput()">Conectează-te</button>
-        <button class="btn" style="font-size: 0.9rem; margin-top: 20px;" onclick="location.reload()">Înapoi</button>
+        <div class="panel">
+            <h2 style="color: var(--p2-color); margin-bottom: 10px;">CONECTARE</h2>
+            <p style="font-size: 12px; color: #aaa; text-align: center;">Introdu codul afișat pe ecranul prietenului tău.</p>
+            
+            <input type="text" class="code-input" id="joinCodeInput" placeholder="EX: A1B2C" maxlength="6">
+            
+            <button class="btn btn-join" style="width: 100%;" onclick="joinGameFromInput()">Conectează-te</button>
+            <button class="btn" style="width: 100%; font-size: 14px; padding: 10px;" onclick="location.reload()">Înapoi</button>
+        </div>
     </div>
 
-    <!-- GAME OVER SCREEN -->
+    <!-- ECRAN 4: GAME OVER -->
     <div class="screen hidden" id="gameOverScreen">
-        <h1 id="gameOverTitle" class="glow-text" style="font-size: 3rem;">AI CÂȘTIGAT!</h1>
+        <h1 id="gameOverTitle" style="font-size: 4rem; margin-bottom: 20px;">VICTORIE</h1>
+        <p id="gameOverSub" style="color: #aaa; margin-bottom: 40px; letter-spacing: 2px;">Inamicul a fost distrus</p>
         <button class="btn" onclick="location.reload()">Meniu Principal</button>
     </div>
 
-    <!-- GAMEPLAY SCREEN -->
-    <div class="screen hidden" id="gameScreen">
+    <!-- ECRAN 5: GAMEPLAY -->
+    <div class="screen hidden" id="gameScreen" style="background: transparent;">
         <div id="gameUI">
-            <div class="health-bar" id="myHealth">
-                <div class="heart"></div><div class="heart"></div><div class="heart"></div>
+            <!-- HUD Inamic (Sus, rotit la 180 grade pentru tip-to-tip) -->
+            <div class="hud-top">
+                <div>
+                    <div class="player-label">INAMIC</div>
+                    <div class="health-bar" id="enemyHealthUI">
+                        <div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div>
+                    </div>
+                </div>
             </div>
-            <div class="enemy-status">Inamic: <span id="enemyHealthText">3</span> HP</div>
+            
+            <!-- HUD Jucător (Jos) -->
+            <div class="hud-bottom">
+                <div>
+                    <div class="player-label">SCUTURILE TALE</div>
+                    <div class="health-bar" id="myHealthUI">
+                        <div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div><div class="heart"></div>
+                    </div>
+                </div>
+                <div style="font-size: 10px; color: rgba(255,255,255,0.3);" id="pingDisplay">PING: --</div>
+            </div>
         </div>
+        
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <div id="connectionStatus">P2P Network Disconnected</div>
-
     <script>
-        
-        // --- Referințe DOM ---
-        const screens = {
+        // --- Referințe DOM Globale ---
+        const UI = {
             menu: document.getElementById('menuScreen'),
             host: document.getElementById('hostScreen'),
             join: document.getElementById('joinScreen'),
             game: document.getElementById('gameScreen'),
-            gameOver: document.getElementById('gameOverScreen')
+            gameOver: document.getElementById('gameOverScreen'),
+            toast: document.getElementById('toastBox')
         };
-        const msgBox = document.getElementById('msgBox');
-        const connStatus = document.getElementById('connectionStatus');
         
-        // --- State Multiplayer ---
+        // Funcții Utilitare UI
+        function showToast(text, duration = 3000) {
+            UI.toast.innerText = text;
+            UI.toast.classList.add('show');
+            setTimeout(() => UI.toast.classList.remove('show'), duration);
+        }
+
+        function switchScreen(screenName) {
+            Object.values(UI).forEach(s => {
+                if(s && s.classList) s.classList.add('hidden');
+            });
+            UI[screenName].classList.remove('hidden');
+        }
+
+        function generateShortId() { return Math.random().toString(36).substring(2, 7).toUpperCase(); }
+
+        // --- Variabile Rețea P2P ---
         let peer = null;
         let conn = null;
         let isHost = false;
         let myColor = '';
         let enemyColor = '';
         
-        // --- Game State ---
+        // --- Variabile Joc ---
+        const MAX_HP = 5;
         let gameActive = false;
-        let myHealth = 3;
-        let enemyHealth = 3;
+        let myHealth = MAX_HP;
+        let enemyHealth = MAX_HP;
+        let lastNetTick = 0;
+        
+        // --- Setup Canvas ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
         
-        // Redimensionare Canvas
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        function resize() {
+            width = window.innerWidth; height = window.innerHeight;
+            canvas.width = width; canvas.height = height;
+        }
         window.addEventListener('resize', resize);
         resize();
-
-        function showMessage(text, duration = 3000) {
-            msgBox.innerText = text;
-            msgBox.style.opacity = 1;
-            setTimeout(() => msgBox.style.opacity = 0, duration);
-        }
-
-        function switchScreen(screenName) {
-            Object.values(screens).forEach(s => s.classList.add('hidden'));
-            screens[screenName].classList.remove('hidden');
-        }
-
-        // --- Generare ID scurt ---
-        function generateShortId() {
-            return Math.random().toString(36).substring(2, 7).toUpperCase();
-        }
-
 
         // 1. GĂZDUIRE JOC
         function hostGame() {
             isHost = true;
-            myColor = '#00f0ff'; // Cyan
-            enemyColor = '#ff0055'; // Magenta
+            myColor = 'var(--p1-color)';
+            enemyColor = 'var(--p2-color)';
             
             const roomId = "CMN-" + generateShortId();
             switchScreen('host');
             document.getElementById('roomIdDisplay').innerText = roomId.replace('CMN-', '');
 
-            // Inițializăm serverul public gratuit PeerJS
             peer = new Peer(roomId);
 
             peer.on('open', (id) => {
-                connStatus.innerText = "Host online: " + id;
-                
-                // Generare URL pentru QR Code
+                showToast("Sesiune creată. Așteptăm un jucător...");
+                // QR Code Generare
                 const joinUrl = window.location.href.split('?')[0] + "?join=" + id;
-                
                 document.getElementById('qrcode').innerHTML = "";
                 new QRCode(document.getElementById('qrcode'), {
-                    text: joinUrl, width: 200, height: 200,
-                    colorDark : "#00f0ff", colorLight : "#ffffff"
+                    text: joinUrl, width: 220, height: 220,
+                    colorDark : "#00e5ff", colorLight : "#ffffff"
                 });
             });
 
             peer.on('connection', (connection) => {
-                // Un jucător s-a conectat!
                 conn = connection;
-                setupConnection();
+                setupConnectionHandlers();
             });
 
-            peer.on('error', (err) => showMessage("Eroare de rețea: " + err.type));
+            peer.on('error', (err) => showToast("Eroare de rețea: " + err.type));
         }
 
         // 2. ALĂTURARE JOC (GUEST)
@@ -234,236 +283,149 @@
 
         function joinGame(hostId) {
             isHost = false;
-            myColor = '#ff0055'; // Magenta
-            enemyColor = '#00f0ff'; // Cyan
+            myColor = 'var(--p2-color)';
+            enemyColor = 'var(--p1-color)';
             
-            showMessage("Conectare la " + hostId + "...");
-            peer = new Peer(); // Ne luăm un ID random
+            showToast("Conectare la " + hostId + "...");
+            peer = new Peer();
 
             peer.on('open', (id) => {
-                // Ne conectăm la Gazdă
-                conn = peer.connect(hostId, { reliable: true });
-                
-                conn.on('open', () => {
-                    setupConnection();
-                });
-                
-                conn.on('error', () => showMessage("Conexiune eșuată!"));
+                // Pentru viteză maximă în jocuri, dezactivăm 'reliable' dacă browserul suportă canale UDP over WebRTC.
+                // Însă, pentru stabilitatea evenimentelor (hit, bullet) păstrăm default. Vom optimiza pachetele.
+                conn = peer.connect(hostId);
+                conn.on('open', () => setupConnectionHandlers());
+                conn.on('error', () => showToast("Conexiune eșuată!"));
             });
         }
 
-        
-        function setupConnection() {
-            showMessage("CONECTAT!", 2000);
-            connStatus.innerText = "Conectat cu succes!";
+        function setupConnectionHandlers() {
+            showToast("CONEXIUNE STABILITĂ!", 2000);
             
-            // Ascultăm mesajele de la celălalt telefon
             conn.on('data', (data) => {
-                handleNetworkData(data);
+                if (!gameActive) return;
+                
+                // Parsare Protocol Ultra-Lightweight (pentru performanță max)
+                // {t: 'tip', x: coordonata, ...}
+                switch(data.t) {
+                    case 'p': // P = Poziție Inamic
+                        // Inamicul e față în față, deci axa X e oglindită vizual!
+                        enemy.targetX = 1.0 - data.x; 
+                        break;
+                    case 'b': // B = Bullet (Glonț primit)
+                        // Glonțul lui iese pe sus la el, deci intră pe sus la mine. Oglindim X.
+                        bullets.push({ 
+                            x: 1.0 - data.x, 
+                            y: 0, // Intră pe la marginea de sus
+                            vy: 0.02, // Se mișcă în JOS (+)
+                            isMine: false, color: enemyColor 
+                        });
+                        // Efect vizual intrare glonț
+                        createExplosion((1.0 - data.x) * width, 0, enemyColor, 5);
+                        break;
+                    case 'h': // H = Hit (Eu am lovit inamicul)
+                        enemyHealth = data.hp;
+                        updateHealthUI('enemyHealthUI', enemyHealth);
+                        createExplosion(enemy.x * width, enemy.y * height, enemyColor, 20);
+                        if (enemyHealth <= 0) gameOver(true); // Am câștigat!
+                        break;
+                }
             });
 
             conn.on('close', () => {
-                showMessage("Inamicul a părăsit jocul.", 5000);
+                showToast("Inamicul a părăsit jocul.", 5000);
                 setTimeout(() => location.reload(), 2000);
             });
 
-            // Start Game
-            setTimeout(startGame, 1000);
+            setTimeout(initGameEngine, 1000);
         }
 
-        // Verificăm dacă am deschis link-ul dintr-un QR code
+        // Auto-join din QR Code URL
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const joinId = urlParams.get('join');
-            if (joinId) {
-                switchScreen('menu'); // Doar vizual pt scurt timp
-                joinGame(joinId);
-            }
+            if (joinId) { switchScreen('menu'); joinGame(joinId); }
         };
 
-        // --- GAME ENGINE ---
-
-        let player = { x: 0.5, y: 0.85, width: 0.15, height: 0.05 }; // Coordonate relative (0.0 - 1.0)
-        let bullets = []; // {x, y, vy, isMine}
+        
+        // --- Entități Joc ---
+        let player = { x: 0.5, y: 0.85, targetX: 0.5, width: 0.12, height: 0.04 };
+        // Inamicul este desenat în partea de sus
+        let enemy  = { x: 0.5, y: 0.15, targetX: 0.5, width: 0.12, height: 0.04 }; 
+        
+        let bullets = [];
+        let particles = [];
+        let gridOffset = 0;
+        let screenShake = 0;
         let lastShootTime = 0;
-        
-        // Controale Touch
-        let targetX = 0.5;
-        
-        function startGame() {
+
+        function initGameEngine() {
             switchScreen('game');
             gameActive = true;
-            myHealth = 3;
-            enemyHealth = 3;
+            myHealth = MAX_HP;
+            enemyHealth = MAX_HP;
             bullets = [];
-            updateHealthUI();
+            particles = [];
             
-            // Controale - Mișcare navă (Drag pe ecran)
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                const touchX = e.touches[0].clientX;
-                targetX = touchX / canvas.width;
-                // Limitare la ecran
-                if(targetX < player.width/2) targetX = player.width/2;
-                if(targetX > 1 - player.width/2) targetX = 1 - player.width/2;
-            });
-
-            // Controale - Tragere (Tap pe ecran)
+            updateHealthUI('myHealthUI', myHealth);
+            updateHealthUI('enemyHealthUI', enemyHealth);
+            
+            // --- Sistem de Control (Touch Optimizat) ---
+            let isDragging = false;
+            
             canvas.addEventListener('touchstart', (e) => {
-                const now = Date.now();
-                if(now - lastShootTime > 300) { // Cooldown 300ms
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                
+                // Zona de jos pentru mișcare, oriunde altundeva (sau tap rapid) pentru a trage
+                if (touchY > height * 0.6) {
+                    isDragging = true;
+                    player.targetX = touchX / width;
+                } else {
                     shoot();
-                    lastShootTime = now;
                 }
+            }, {passive: false});
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Previne scroll
+                if(isDragging) {
+                    let tx = e.touches[0].clientX / width;
+                    // Limitare la ecran
+                    player.targetX = Math.max(player.width/2, Math.min(1 - player.width/2, tx));
+                }
+            }, {passive: false});
+
+            canvas.addEventListener('touchend', () => { isDragging = false; });
+            
+            // Pentru teste pe Desktop
+            canvas.addEventListener('mousemove', (e) => {
+                player.targetX = Math.max(player.width/2, Math.min(1 - player.width/2, e.clientX / width));
             });
+            canvas.addEventListener('mousedown', shoot);
 
             requestAnimationFrame(gameLoop);
         }
 
         function shoot() {
-            // Glonțul nostru merge în SUS (y scade)
-            const b = { x: player.x, y: player.y - 0.05, vy: -0.015, isMine: true };
-            bullets.push(b);
-        }
-
-        function handleNetworkData(data) {
-            if (!gameActive) return;
-
-            if (data.type === 'bullet') {
-                // Magia "DUAL!": Glonțul inamicului iese pe sus la el, intră pe sus la noi.
-                // Cum stăm față în față (tip-to-tip), Axa X trebuie inversată vizual!
-                const mirroredX = 1.0 - data.x;
-                // Viteza devine pozitivă (glonțul inamicului merge în JOS pe ecranul nostru)
-                bullets.push({ x: mirroredX, y: 0, vy: 0.015, isMine: false });
-            } 
-            else if (data.type === 'hit') {
-                enemyHealth = data.health;
-                document.getElementById('enemyHealthText').innerText = enemyHealth;
-                if (enemyHealth <= 0) gameOver(true); // Dacă inamicul are 0 HP, am câștigat
+            const now = Date.now();
+            if(now - lastShootTime > 250) { // Cooldown 250ms
+                bullets.push({ 
+                    x: player.x, 
+                    y: player.y - 0.04, 
+                    vy: -0.025, // Merge în SUS (-)
+                    isMine: true, color: myColor 
+                });
+                // Efect recul/propulsie glonț
+                createExplosion(player.x * width, player.y * height - 20, '#fff', 5);
+                lastShootTime = now;
             }
         }
 
-        
-        function gameLoop() {
-            if (!gameActive) return;
-
-            update();
-            draw();
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function update() {
-            // Interpolare lină pentru mișcare navă
-            player.x += (targetX - player.x) * 0.2;
-
-            // Update Gloanțe
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i];
-                b.y += b.vy;
-
-                // 1. Glonțul MEU iese de pe ecran în SUS -> Îl trimit la inamic
-                if (b.isMine && b.y < 0) {
-                    if (conn && conn.open) {
-                        conn.send({ type: 'bullet', x: b.x });
-                    }
-                    bullets.splice(i, 1); // Eliminăm de pe ecranul local
-                    continue;
-                }
-
-                // 2. Glonțul INAMIC iese de pe ecran în JOS -> A ratat, dispare
-                if (!b.isMine && b.y > 1) {
-                    bullets.splice(i, 1);
-                    continue;
-                }
-
-                // 3. Coliziune: Glonțul INAMIC mă lovește
-                if (!b.isMine) {
-                    // Verificăm intersecția (Hitbox simplificat la un dreptunghi)
-                    const hitX = Math.abs(b.x - player.x) < (player.width / 2);
-                    const hitY = Math.abs(b.y - player.y) < (player.height / 2);
-                    
-                    if (hitX && hitY) {
-                        // AM FOST LOVIT!
-                        myHealth--;
-                        bullets.splice(i, 1); // Distruge glonțul
-                        updateHealthUI();
-                        
-                        // Anunț inamicul că m-a lovit
-                        if (conn && conn.open) conn.send({ type: 'hit', health: myHealth });
-
-                        if (myHealth <= 0) {
-                            gameOver(false); // Am pierdut
-                        }
-                    }
-                }
-            }
-        }
-
-        function updateHealthUI() {
-            const hearts = document.querySelectorAll('#myHealth .heart');
+        function updateHealthUI(elementId, hp) {
+            const hearts = document.querySelectorAll(`#${elementId} .heart`);
             hearts.forEach((h, index) => {
-                if (index >= myHealth) h.classList.add('lost');
+                if (index >= hp) h.classList.add('lost');
                 else h.classList.remove('lost');
             });
-            // Efect vizual de damage
-            canvas.style.boxShadow = "inset 0 0 50px red";
-            setTimeout(() => canvas.style.boxShadow = "none", 100);
-        }
-
-        
-        function draw() {
-            const w = canvas.width;
-            const h = canvas.height;
-
-            // Clear frame
-            ctx.clearRect(0, 0, w, h);
-
-            // Setăm stil de Neon
-            ctx.lineJoin = 'round';
-            
-            // 1. Desenăm Jucătorul (Nava noastră)
-            const px = player.x * w;
-            const py = player.y * h;
-            const pw = player.width * w;
-            const ph = player.height * h;
-
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = myColor;
-            ctx.fillStyle = myColor;
-            
-            // Desenăm un triunghi (Nava) îndreptat în SUS
-            ctx.beginPath();
-            ctx.moveTo(px, py - ph/2); // Vârf
-            ctx.lineTo(px - pw/2, py + ph/2); // Stânga jos
-            ctx.lineTo(px, py + ph/4); // Centru jos
-            ctx.lineTo(px + pw/2, py + ph/2); // Dreapta jos
-            ctx.closePath();
-            ctx.fill();
-
-            // 2. Desenăm Gloanțele
-            for (let b of bullets) {
-                const bx = b.x * w;
-                const by = b.y * h;
-                
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = b.isMine ? myColor : enemyColor;
-                ctx.fillStyle = b.isMine ? '#fff' : enemyColor;
-
-                ctx.beginPath();
-                // Gloanțele mele sunt alungite în sus, ale inamicului în jos
-                const bLength = h * 0.04;
-                ctx.arc(bx, by, w * 0.015, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Trail (Coadă glonț)
-                ctx.beginPath();
-                ctx.moveTo(bx, by);
-                ctx.lineTo(bx, by - (b.vy * 500)); // Trage linia in sens opus miscarii
-                ctx.strokeStyle = b.isMine ? myColor : enemyColor;
-                ctx.lineWidth = 4;
-                ctx.stroke();
-            }
         }
 
         function gameOver(didIWin) {
@@ -471,18 +433,229 @@
             switchScreen('gameOver');
             
             const title = document.getElementById('gameOverTitle');
+            const sub = document.getElementById('gameOverSub');
+            
             if (didIWin) {
-                title.innerText = "VICTORIE!";
-                title.style.color = myColor;
-                title.style.textShadow = `0 0 20px ${myColor}`;
+                title.innerText = "VICTORIE";
+                title.style.color = myColor; title.style.textShadow = `0 0 30px ${myColor}`;
+                sub.innerText = "Inamicul a fost anihilat!";
             } else {
-                title.innerText = "DISTRUS!";
-                title.style.color = 'red';
-                title.style.textShadow = `0 0 20px red`;
+                title.innerText = "DISTRUS";
+                title.style.color = 'white'; title.style.textShadow = `0 0 30px red`;
+                sub.innerText = "Scuturile tale au cedat...";
+            }
+            if (conn) setTimeout(() => conn.close(), 2000);
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+            updatePhysics();
+            renderGraphics();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updatePhysics() {
+            // 1. Interpolare liniară pentru mișcare super-fluidă (Anulează lag-ul!)
+            player.x += (player.targetX - player.x) * 0.3;
+            enemy.x += (enemy.targetX - enemy.x) * 0.3; // Interpolăm datele primite de pe net
+
+            // 2. Transmitere Poziție în rețea (Throttle la ~30fps pentru a nu sufoca WebRTC)
+            const now = Date.now();
+            if (now - lastNetTick > 33) {
+                if(conn && conn.open) conn.send({ t: 'p', x: player.x });
+                lastNetTick = now;
+            }
+
+            // 3. Zguduirea ecranului (Screen Shake decay)
+            if (screenShake > 0) screenShake *= 0.9;
+            if (screenShake < 0.5) screenShake = 0;
+
+            // 4. Update Fundal (Grid)
+            gridOffset = (gridOffset + 2) % 50;
+
+            // 5. Generare particule propulsie navă
+            if(Math.random() > 0.5) {
+                particles.push({
+                    x: player.x * width + (Math.random() - 0.5) * 10,
+                    y: player.y * height + 15,
+                    vx: (Math.random() - 0.5) * 1, vy: Math.random() * 3 + 2,
+                    life: 1.0, color: myColor, size: Math.random() * 3 + 2
+                });
+            }
+
+            // 6. Update Gloanțe & Coliziuni
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.y += b.vy;
+
+                // A. Glonțul MEU iese prin partea de SUS -> Îl trimit în telefonul inamicului
+                if (b.isMine && b.y < 0) {
+                    if (conn && conn.open) conn.send({ t: 'b', x: b.x });
+                    createExplosion(b.x * width, 0, myColor, 5); // Efect "spargere ecran" la ieșire
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // B. Glonțul INAMIC iese prin partea de JOS -> Ratare
+                if (!b.isMine && b.y > 1) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // C. Coliziune: Glonțul INAMIC mă lovește
+                if (!b.isMine) {
+                    // Hitbox simplificat pentru navă
+                    const hitX = Math.abs(b.x - player.x) < (player.width / 2);
+                    const hitY = Math.abs(b.y - player.y) < (player.height / 2);
+                    
+                    if (hitX && hitY) {
+                        myHealth--;
+                        updateHealthUI('myHealthUI', myHealth);
+                        screenShake = 20; // Cutremur masiv
+                        createExplosion(player.x * width, player.y * height, myColor, 30);
+                        
+                        // Anunț inamicul că M-A LOVIT
+                        if (conn && conn.open) conn.send({ t: 'h', hp: myHealth });
+                        
+                        bullets.splice(i, 1);
+                        if (myHealth <= 0) gameOver(false);
+                    }
+                }
+            }
+
+            // 7. Update Particule (Explozii)
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy;
+                p.life -= 0.03;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function createExplosion(x, y, color, amount) {
+            for(let i=0; i<amount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 1;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    life: 1.0, color: color, size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function renderGraphics() {
+            // Curățare cadru cu opacitate mică pentru efect de "motion blur" pe gloanțe
+            ctx.fillStyle = 'rgba(5, 5, 10, 0.4)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.save();
+            
+            // Aplicare Screen Shake
+            if (screenShake > 0) {
+                const dx = (Math.random() - 0.5) * screenShake;
+                const dy = (Math.random() - 0.5) * screenShake;
+                ctx.translate(dx, dy);
+            }
+
+            // 1. Desenare Fundal Cyber-Grid (Perspective falsă 3D)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            // Linii orizontale (mișcare)
+            for(let y = gridOffset; y < height; y += 50) {
+                ctx.moveTo(0, y); ctx.lineTo(width, y);
+            }
+            // Linii verticale (fugi spre infinit)
+            const centerX = width / 2;
+            for(let x = -width; x < width * 2; x += 60) {
+                ctx.moveTo(centerX, height/2); // Punct de fugă la mijloc
+                ctx.lineTo(x, height);
+                ctx.moveTo(centerX, height/2);
+                ctx.lineTo(x, 0);
+            }
+            ctx.stroke();
+
+            // Setări globale Glow (Juice)
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Funcție helper pentru desenare navă (Stil Space-Fighter modern)
+            const drawShip = (shipObj, isEnemy) => {
+                const px = shipObj.x * width;
+                const py = shipObj.y * height;
+                const pw = shipObj.width * width;
+                const ph = shipObj.height * height;
+                const color = isEnemy ? enemyColor : myColor;
+                const dir = isEnemy ? 1 : -1; // 1 = jos, -1 = sus
+
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = color;
+                ctx.fillStyle = '#000'; // Corp negru
+                ctx.strokeStyle = color; // Contur Neon
+                ctx.lineWidth = 3;
+
+                ctx.beginPath();
+                ctx.moveTo(px, py + (ph/2 * dir)); // Vârf
+                ctx.lineTo(px - pw/2, py - (ph/2 * dir)); // Aripă Stânga
+                ctx.lineTo(px, py - (ph/4 * dir)); // Spate Centru
+                ctx.lineTo(px + pw/2, py - (ph/2 * dir)); // Aripă Dreapta
+                ctx.closePath();
+                
+                ctx.fill();
+                ctx.stroke();
+                
+                // Detaliu central (Miez luminos)
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(px, py, 4, 0, Math.PI*2);
+                ctx.fill();
+            };
+
+            // 2. Desenează Inamicul (Dacă ambii sunt conectați)
+            if (enemyHealth > 0) drawShip(enemy, true);
+
+            // 3. Desenează Jucătorul Tău
+            if (myHealth > 0) drawShip(player, false);
+
+            // 4. Desenare Gloanțe (Lasere lungi)
+            for (let b of bullets) {
+                const bx = b.x * width;
+                const by = b.y * height;
+                const color = b.isMine ? myColor : enemyColor;
+                
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = color;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 4;
+
+                ctx.beginPath();
+                ctx.moveTo(bx, by);
+                // Trage o linie de la poziția curentă spre poziția anterioară (coadă de laser)
+                ctx.lineTo(bx, by - (b.vy * 800)); 
+                ctx.stroke();
+
+                // Capăt luminos
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(bx, by, 3, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // 5. Desenare Particule
+            ctx.globalCompositeOperation = 'lighter'; // Efect de foc/neon suprapus
+            for (let p of particles) {
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fill();
             }
             
-            // Deconectare politicoasă
-            if (conn) setTimeout(() => conn.close(), 1000);
+            ctx.restore();
         }
 
     </script>

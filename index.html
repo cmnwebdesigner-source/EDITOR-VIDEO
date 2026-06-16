@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CMN Scribble - Whiteboard Colaborativ</title>
+    <title>CMN Art Contest - Multiplayer</title>
     
     <!-- Librării pentru WebRTC P2P și QR Code -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -13,459 +13,609 @@
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 
         :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
+            --primary: #f43f5e;
+            --primary-hover: #e11d48;
             --bg-dark: #0f172a;
-            --glass-bg: rgba(255, 255, 255, 0.9);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --text-dark: #1e293b;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-light: #f8fafc;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
 
         body {
-            background-color: var(--bg-dark);
-            color: white;
-            overflow: hidden;
-            width: 100vw; height: 100vh;
-            touch-action: none; /* Previne scroll-ul pe mobil la desenare */
+            background-color: var(--bg-dark); color: var(--text-light);
+            overflow: hidden; width: 100vw; height: 100vh; touch-action: none;
         }
 
-        /* --- Meniuri și Ecrane --- */
+        /* --- Ecrane Globale --- */
         .screen {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            z-index: 10;
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            z-index: 10; transition: opacity 0.4s ease, transform 0.4s ease;
         }
         .screen.hidden { opacity: 0; pointer-events: none; z-index: -1; transform: scale(1.05); }
 
-        h1 { font-size: 3rem; font-weight: 800; margin-bottom: 30px; text-align: center; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p.subtitle { color: #94a3b8; margin-top: -20px; margin-bottom: 40px; font-size: 1.1rem; }
-
-        .btn {
-            background: var(--primary); color: white; border: none;
-            padding: 15px 40px; font-size: 1.1rem; font-weight: 600;
-            border-radius: 30px; cursor: pointer; transition: all 0.3s ease;
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
-            margin: 10px; width: 80%; max-width: 300px;
-        }
-        .btn:hover { background: var(--primary-hover); transform: translateY(-3px); box-shadow: 0 15px 25px rgba(99, 102, 241, 0.4); }
-        .btn:active { transform: translateY(0); }
-        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); box-shadow: none; }
+        h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 20px; text-align: center; background: linear-gradient(to right, #fb7185, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
         .panel {
-            background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(15px);
-            padding: 40px 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);
-            display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 450px;
+            background: var(--glass-bg); backdrop-filter: blur(15px); padding: 30px;
+            border-radius: 24px; border: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; align-items: center; width: 90%; max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
 
-        .qr-wrapper { background: white; padding: 20px; border-radius: 16px; margin: 20px 0; box-shadow: 0 0 30px rgba(99, 102, 241, 0.2); }
-        
-        .code-input {
-            background: rgba(15, 23, 42, 0.8); border: 2px solid var(--primary);
-            color: white; font-size: 2.5rem; text-align: center; padding: 15px; border-radius: 16px;
-            outline: none; text-transform: uppercase; letter-spacing: 8px; margin: 20px 0; width: 100%;
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 12px 30px; font-size: 1.1rem; font-weight: 600;
+            border-radius: 30px; cursor: pointer; transition: all 0.3s ease; width: 100%; max-width: 300px; margin-top: 10px;
+        }
+        .btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        .btn:disabled { background: #475569; cursor: not-allowed; transform: none; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+
+        .input-text {
+            background: rgba(15, 23, 42, 0.8); border: 2px solid var(--primary); color: white;
+            font-size: 1.5rem; text-align: center; padding: 15px; border-radius: 16px; outline: none; margin-bottom: 20px; width: 100%;
         }
 
-        /* --- Tabla de Desen (Whiteboard) --- */
-        #whiteboardScreen { background: #ffffff; cursor: crosshair; }
-        
-        canvas {
-            display: block;
-            width: 100vw; height: 100vh;
-            background: #ffffff;
+        /* --- Lobby Masa --- */
+        .player-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin: 20px 0; }
+        .player-slot {
+            background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2);
+            padding: 15px; border-radius: 12px; text-align: center; font-weight: 600; color: #94a3b8;
         }
+        .player-slot.filled { background: rgba(244, 63, 94, 0.1); border: 1px solid var(--primary); color: white; }
 
-        /* --- Toolbar (Unelte Desen) --- */
+        /* --- Faza 1: Votare Cuvânt --- */
+        .word-btn {
+            background: rgba(255,255,255,0.1); border: 2px solid transparent; color: white;
+            padding: 15px; border-radius: 12px; font-size: 1.2rem; cursor: pointer; transition: 0.2s; width: 100%; margin-bottom: 10px;
+        }
+        .word-btn:hover { background: rgba(255,255,255,0.2); }
+        .word-btn.selected { border-color: var(--primary); background: rgba(244, 63, 94, 0.2); }
+        .timer-big { font-size: 4rem; font-weight: 800; color: var(--primary); margin: 20px 0; }
+
+        /* --- Faza 2: Desenare --- */
+        #drawingScreen { background: #ffffff; cursor: crosshair; }
+        #topBarDraw {
+            position: absolute; top: 0; left: 0; right: 0; background: var(--bg-dark); color: white;
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 20;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .timer-draw { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+        canvas { display: block; width: 100vw; height: 100vh; background: #ffffff; }
+
         .toolbar {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            padding: 15px 25px; border-radius: 20px; border: 1px solid var(--glass-border);
-            display: flex; gap: 20px; align-items: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            z-index: 20; color: var(--text-dark);
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--glass-bg); backdrop-filter: blur(20px); padding: 10px 20px; border-radius: 20px;
+            display: flex; gap: 15px; align-items: center; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-
-        .tool-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .tool-label { font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; }
-
-        input[type="color"] {
-            -webkit-appearance: none; border: none; width: 40px; height: 40px;
-            border-radius: 50%; cursor: pointer; overflow: hidden; padding: 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        .tool-icon { background: #334155; border: none; width: 40px; height: 40px; border-radius: 12px; cursor: pointer; color: white; transition: 0.2s; }
+        .tool-icon.active { background: var(--primary); }
+        input[type="color"] { -webkit-appearance: none; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; overflow: hidden; padding: 0; }
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 
-        input[type="range"] { width: 100px; accent-color: var(--primary); cursor: pointer; }
-
-        .icon-btn {
-            background: #f1f5f9; border: none; width: 40px; height: 40px;
-            border-radius: 12px; cursor: pointer; font-size: 1.2rem;
-            display: flex; justify-content: center; align-items: center;
-            transition: 0.2s; color: #475569;
+        /* --- Faza 3: Showcase & Votare Desen --- */
+        .showcase-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; max-width: 800px; padding: 20px;
         }
-        .icon-btn:hover { background: #e2e8f0; color: var(--primary); }
-        .icon-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); }
-
-        /* Status Conexiune în joc */
-        .conn-status {
-            position: absolute; top: 20px; left: 20px;
-            background: var(--glass-bg); padding: 8px 15px; border-radius: 12px;
-            font-size: 0.85rem; font-weight: 600; color: var(--text-dark);
-            display: flex; align-items: center; gap: 8px; z-index: 20;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); backdrop-filter: blur(10px);
+        .drawing-card {
+            background: white; padding: 10px; border-radius: 12px; display: flex; flex-direction: column; align-items: center;
+            cursor: pointer; transition: 0.2s; border: 4px solid transparent; position: relative;
         }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        .drawing-card img { width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; background: white; }
+        .drawing-card.selected { border-color: var(--primary); transform: scale(1.05); }
+        .drawing-author { color: var(--bg-dark); font-weight: 800; margin-top: 10px; }
+        .votes-badge { position: absolute; top: -10px; right: -10px; background: var(--primary); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
 
-        /* Notificări Toast */
+        /* --- Notificări --- */
         .toast {
-            position: absolute; top: 40px; left: 50%; transform: translateX(-50%) translateY(-20px);
-            background: rgba(15, 23, 42, 0.9); color: white; padding: 12px 25px;
-            border-radius: 30px; font-size: 14px; font-weight: 600;
-            z-index: 100; transition: all 0.4s ease; opacity: 0; pointer-events: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white;
+            padding: 10px 20px; border-radius: 20px; z-index: 100; opacity: 0; transition: 0.3s; pointer-events: none;
         }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
+        .toast.show { opacity: 1; }
     </style>
 </head>
 <body>
 
     <div class="toast" id="toastBox">Notificare</div>
 
-    <!-- ECRAN 1: Meniu Principal -->
-    <div class="screen" id="menuScreen">
-        <h1>CMN Scribble</h1>
-        <p class="subtitle">Tablă de desen colaborativă în timp real</p>
-        <button class="btn" onclick="hostRoom()">Crează o Cameră</button>
-        <button class="btn btn-outline" onclick="showJoinScreen()">Alătură-te</button>
-    </div>
-
-    <!-- ECRAN 2: Lobby Gazdă -->
-    <div class="screen hidden" id="hostScreen">
+    <!-- 0. ECRAN NUME -->
+    <div class="screen" id="nameScreen">
         <div class="panel">
-            <h2 style="margin-bottom: 10px; color: #f8fafc;">Așteptăm partenerul...</h2>
-            <p style="font-size: 0.9rem; color: #94a3b8; text-align: center;">Scanează codul de pe alt dispozitiv sau introdu codul manual.</p>
-            
-            <div class="qr-wrapper" id="qrcode"></div>
-            
-            <div style="font-size: 2.5rem; font-weight: 800; letter-spacing: 6px; color: var(--primary);" id="roomIdDisplay">...</div>
-            
-            <button class="btn btn-outline" style="margin-top: 30px;" onclick="location.reload()">Anulează</button>
+            <h1>Cum te cheamă?</h1>
+            <input type="text" class="input-text" id="playerName" placeholder="Numele tău" maxlength="12">
+            <button class="btn" onclick="goToMenu()">Mai departe</button>
         </div>
     </div>
 
-    <!-- ECRAN 3: Conectare -->
+    <!-- 1. ECRAN MENIU -->
+    <div class="screen hidden" id="menuScreen">
+        <h1>Art Contest</h1>
+        <button class="btn" onclick="createTable()">Creează o Masă (Gazdă)</button>
+        <button class="btn btn-outline" onclick="switchScreen('joinScreen')">Alătură-te la o Masă</button>
+    </div>
+
+    <!-- 2. ECRAN LOBBY (MASA) -->
+    <div class="screen hidden" id="lobbyScreen">
+        <div class="panel">
+            <h1>Masa de Desen</h1>
+            <div style="background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 10px; letter-spacing: 3px; font-weight: bold; margin-bottom: 10px;">
+                COD: <span id="lobbyCode" style="color: var(--primary);">...</span>
+            </div>
+            
+            <div class="player-grid" id="playerList">
+                <!-- Sloturi generate dinamic -->
+            </div>
+
+            <button class="btn" id="btnStartGame" style="display: none;" onclick="startGame()">Începe Jocul</button>
+            <p id="waitText" style="color: #94a3b8; font-size: 0.9rem; margin-top: 15px;">Așteptăm să înceapă gazda...</p>
+        </div>
+    </div>
+
+    <!-- ECRAN JOIN -->
     <div class="screen hidden" id="joinScreen">
         <div class="panel">
-            <h2 style="margin-bottom: 10px; color: #f8fafc;">Intră în Cameră</h2>
-            <p style="font-size: 0.9rem; color: #94a3b8; text-align: center;">Introdu codul afișat de gazdă.</p>
-            
-            <input type="text" class="code-input" id="joinCodeInput" placeholder="A1B2C" maxlength="5">
-            
-            <button class="btn" style="width: 100%;" onclick="joinRoomFromInput()">Conectează-te</button>
-            <button class="btn btn-outline" style="width: 100%; margin-top: 10px;" onclick="location.reload()">Înapoi</button>
+            <h1>Intră la Masă</h1>
+            <input type="text" class="input-text" id="joinCodeInput" placeholder="COD MASĂ" style="text-transform: uppercase;">
+            <button class="btn" onclick="joinTable()">Conectare</button>
+            <button class="btn btn-outline" onclick="switchScreen('menuScreen')">Înapoi</button>
         </div>
     </div>
 
-    <!-- ECRAN 4: Whiteboard (Tabla de Desen) -->
-    <div class="screen hidden" id="whiteboardScreen">
-        
-        <div class="conn-status">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Conectat</span>
+    <!-- 3. ECRAN VOTARE CUVÂNT -->
+    <div class="screen hidden" id="wordVoteScreen">
+        <div class="panel">
+            <h2>Votați un cuvânt!</h2>
+            <div class="timer-big" id="wordTimer">5</div>
+            <div id="wordOptionsContainer" style="width: 100%;">
+                <!-- Butoane cuvinte -->
+            </div>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px;">Cel mai votat cuvânt va fi desenat de toți!</p>
         </div>
+    </div>
 
-        <canvas id="drawingBoard"></canvas>
+    <!-- 4. ECRAN DESENARE (WHITEBOARD PRIVAT) -->
+    <div class="screen hidden" id="drawingScreen">
+        <div id="topBarDraw">
+            <div style="font-weight: 800; font-size: 1.2rem;">Cuvânt: <span id="drawWordLabel" style="color: var(--primary); text-transform: uppercase;">...</span></div>
+            <div class="timer-draw" id="drawTimer">120</div>
+        </div>
         
-        <!-- Bara cu unelte (Toolbar) -->
+        <canvas id="canvas"></canvas>
+        
         <div class="toolbar">
-            <div class="tool-group">
-                <span class="tool-label">Culoare</span>
-                <input type="color" id="colorPicker" value="#000000">
-            </div>
-            
-            <div class="tool-group">
-                <span class="tool-label">Grosime</span>
-                <input type="range" id="brushSize" min="1" max="40" value="4">
-            </div>
+            <input type="color" id="colorPicker" value="#000000">
+            <input type="range" id="brushSize" min="1" max="30" value="5">
+            <button class="tool-icon active" id="btnPen">🖌️</button>
+            <button class="tool-icon" id="btnEraser">🧹</button>
+            <button class="tool-icon" id="btnClear" style="background: var(--primary);">🗑️</button>
+        </div>
+    </div>
 
-            <div class="tool-group" style="flex-direction: row; gap: 10px; margin-left: 10px; align-items: flex-end;">
-                <button class="icon-btn active" id="btnPen" title="Pensulă">🖌️</button>
-                <button class="icon-btn" id="btnEraser" title="Radieră">🧹</button>
-                <div style="width: 1px; height: 30px; background: #cbd5e1; margin: 0 5px;"></div>
-                <button class="icon-btn" id="btnClear" title="Șterge Tot" style="color: #ef4444;">🗑️</button>
-                <button class="icon-btn" id="btnDownload" title="Descarcă Desen" style="color: #10b981;">💾</button>
-            </div>
+    <!-- 5. ECRAN SHOWCASE (Votare desene finale) -->
+    <div class="screen hidden" id="showcaseScreen">
+        <h2 style="margin-top: 20px;">Votați cel mai bun desen!</h2>
+        <div class="timer-big" id="showcaseTimer" style="margin: 5px 0;">15</div>
+        <div class="showcase-grid" id="showcaseGrid">
+            <!-- Desene adăugate dinamic -->
+        </div>
+    </div>
+
+    <!-- 6. ECRAN REZULTATE -->
+    <div class="screen hidden" id="resultScreen">
+        <div class="panel">
+            <h1>Câștigătorul!</h1>
+            <img id="winnerImg" src="" style="width: 100%; border-radius: 12px; border: 4px solid var(--primary); margin: 20px 0;">
+            <h2 id="winnerName" style="color: var(--primary);">...</h2>
+            <button class="btn" id="btnRestart" style="display: none;" onclick="restartToLobby()">Înapoi în Lobby</button>
         </div>
     </div>
 
     <script>
-        // --- 1. Gestiunea ECRANELOR ȘI NOTIFICĂRILOR ---
-        const UI = {
-            menu: document.getElementById('menuScreen'),
-            host: document.getElementById('hostScreen'),
-            join: document.getElementById('joinScreen'),
-            whiteboard: document.getElementById('whiteboardScreen'),
-            toast: document.getElementById('toastBox')
-        };
+        // --- BAZĂ DE DATE CUVINTE (100 cuvinte) ---
+        const wordsDB = ["Casă","Mașină","Copac","Soare","Măr","Pisică","Câine","Stea","Lună","Munte","Râu","Pădure","Floare","Pasăre","Pește","Urs","Iepure","Vulpe","Lup","Elefant","Leu","Tigru","Maimuță","Șarpe","Broscuță","Fluture","Albină","Păianjen","Melc","Vierme","Nor","Ploaie","Zăpadă","Vânt","Furtună","Foc","Apă","Pământ","Nisip","Piatră","Drum","Pod","Barcă","Tren","Avion","Elicopter","Bicicletă","Trotinetă","Patine","Minge","Păpușă","Jucărie","Carte","Caiet","Creion","Stilou","Ghiozdan","Tablă","Bancă","Scaun","Masă","Pat","Dulap","Ușă","Fereastră","Acoperiș","Perete","Podea","Covor","Perdea","Televizor","Telefon","Calculator","Lustră","Bec","Priză","Fier de călcat","Aspirator","Frigider","Aragaz","Cuptor","Chiuvetă","Cadă","Duș","Săpun","Șampon","Prosop","Perie","Pieptene","Oglindă","Pălărie","Căciulă","Fular","Mănuși","Șosete","Papuci","Ghete","Cizme","Pantaloni","Cămașă"];
+
+        // --- STARE GLOBALĂ JUCĂTOR LOCAL ---
+        let myName = "";
+        let myId = "";
+        let isHost = false;
         
-        function showToast(text, duration = 3000) {
-            UI.toast.innerText = text;
-            UI.toast.classList.add('show');
-            setTimeout(() => UI.toast.classList.remove('show'), duration);
-        }
-
-        function switchScreen(screenName) {
-            Object.values(UI).forEach(s => { if(s.classList) s.classList.add('hidden'); });
-            UI[screenName].classList.remove('hidden');
-        }
-
-        function generateShortId() { return Math.random().toString(36).substring(2, 7).toUpperCase(); }
-
-        // --- 2. SISTEMUL DE REȚEA WEBRTC (PeerJS) ---
+        // --- STARE REȚEA (PeerJS) ---
         let peer = null;
-        let conn = null;
+        let hostConnection = null; // Pentru clienți
+        let clientConnections = []; // Pentru gazdă
         
-        function hostRoom() {
-            const roomId = generateShortId();
-            switchScreen('host');
-            document.getElementById('roomIdDisplay').innerText = roomId;
+        // --- STARE JOC (Gestionată de GAZDĂ) ---
+        let gameState = {
+            phase: 'LOBBY', // LOBBY, VOTE_WORD, DRAWING, SHOWCASE, RESULTS
+            players: [], // { id, name, voteWordIndex, drawingData, voteDrawingId }
+            wordOptions: [],
+            selectedWord: "",
+            timer: 0
+        };
+        let hostInterval = null;
 
-            peer = new Peer("CMNSCRB-" + roomId); // Prefix pentru a evita coliziuni globale
+        // --- FUNCȚII UI ---
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toastBox');
+            t.innerText = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function goToMenu() {
+            const n = document.getElementById('playerName').value.trim();
+            if(n.length < 2) return showToast("Introdu un nume valid!");
+            myName = n;
+            switchScreen('menuScreen');
+        }
+
+        function generateId() { return Math.random().toString(36).substring(2, 7).toUpperCase(); }
+
+        // --- LOGICĂ GAZDĂ (SERVER P2P) ---
+        function createTable() {
+            isHost = true;
+            myId = generateId();
+            
+            showToast("Creare masă...");
+            peer = new Peer("CMNART-" + myId);
 
             peer.on('open', (id) => {
-                showToast("Cameră creată!");
-                // Generare QR Code cu link de auto-join
-                const joinUrl = window.location.href.split('?')[0] + "?join=" + roomId;
-                document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById('qrcode'), {
-                    text: joinUrl, width: 200, height: 200,
-                    colorDark : "#4f46e5", colorLight : "#ffffff"
+                switchScreen('lobbyScreen');
+                document.getElementById('lobbyCode').innerText = myId;
+                document.getElementById('btnStartGame').style.display = 'block';
+                document.getElementById('waitText').style.display = 'none';
+                
+                // Adaugă gazda în lista de jucători
+                gameState.players.push({ id: myId, name: myName, voteWordIndex: -1, drawingData: null, voteDrawingId: null });
+                updateLobbyUI();
+            });
+
+            peer.on('connection', (conn) => {
+                if(gameState.players.length >= 4) {
+                    conn.send({ type: 'ERROR', msg: "Masa este plină (Max 4)!" });
+                    setTimeout(() => conn.close(), 1000);
+                    return;
+                }
+
+                clientConnections.push(conn);
+                
+                conn.on('data', (data) => handleDataAsHost(conn, data));
+                
+                conn.on('close', () => {
+                    // Elimină jucătorul deconectat
+                    clientConnections = clientConnections.filter(c => c !== conn);
+                    gameState.players = gameState.players.filter(p => p.id !== conn.peer);
+                    broadcastState();
+                    updateLobbyUI();
                 });
             });
-
-            peer.on('connection', (connection) => {
-                conn = connection;
-                setupConnectionHandlers();
-            });
-
-            peer.on('error', (err) => showToast("Eroare WebRTC: " + err.type));
         }
 
-        function showJoinScreen() { switchScreen('join'); }
+        function handleDataAsHost(conn, data) {
+            const playerId = conn.peer;
+            let player = gameState.players.find(p => p.id === playerId);
 
-        function joinRoomFromInput() {
+            if (data.type === 'JOIN') {
+                gameState.players.push({ id: playerId, name: data.name, voteWordIndex: -1, drawingData: null, voteDrawingId: null });
+                broadcastState();
+                updateLobbyUI();
+            }
+            else if (data.type === 'VOTE_WORD' && gameState.phase === 'VOTE_WORD') {
+                if(player) player.voteWordIndex = data.index;
+            }
+            else if (data.type === 'SUBMIT_DRAWING' && gameState.phase === 'DRAWING') {
+                if(player) player.drawingData = data.image;
+                checkAllDrawingsSubmitted();
+            }
+            else if (data.type === 'VOTE_DRAWING' && gameState.phase === 'SHOWCASE') {
+                if(player) player.voteDrawingId = data.targetId;
+            }
+        }
+
+        function broadcastState() {
+            if(!isHost) return;
+            const stateToSend = { type: 'STATE', state: gameState };
+            clientConnections.forEach(c => c.send(stateToSend));
+            handleStateUpdate(gameState); // Aplica și local pentru gazdă
+        }
+
+        // --- SISTEM DE FAZE (Doar gazda controlează) ---
+        function startGame() {
+            if(gameState.players.length < 2) return showToast("Ai nevoie de minim 2 jucători!");
+            
+            // Faza 1: Alege 3 cuvinte
+            let shuffled = wordsDB.sort(() => 0.5 - Math.random());
+            gameState.wordOptions = shuffled.slice(0, 3);
+            
+            // Reset state
+            gameState.players.forEach(p => { p.voteWordIndex = -1; p.drawingData = null; p.voteDrawingId = null; });
+            
+            setPhase('VOTE_WORD', 5); // 5 secunde vot
+        }
+
+        function setPhase(newPhase, time) {
+            gameState.phase = newPhase;
+            gameState.timer = time;
+            broadcastState();
+
+            clearInterval(hostInterval);
+            hostInterval = setInterval(() => {
+                gameState.timer--;
+                broadcastState();
+
+                if(gameState.timer <= 0) {
+                    clearInterval(hostInterval);
+                    handlePhaseTimeout(newPhase);
+                }
+            }, 1000);
+        }
+
+        function handlePhaseTimeout(oldPhase) {
+            if(oldPhase === 'VOTE_WORD') {
+                // Calculează cuvântul câștigător
+                let counts = [0, 0, 0];
+                gameState.players.forEach(p => { if(p.voteWordIndex !== -1) counts[p.voteWordIndex]++; });
+                let maxIndex = counts.indexOf(Math.max(...counts));
+                gameState.selectedWord = gameState.wordOptions[maxIndex];
+                
+                setPhase('DRAWING', 120); // 120 secunde pentru desen
+            }
+            else if (oldPhase === 'DRAWING') {
+                // Timpul a expirat, cere desenele
+                forceSubmitDrawings();
+                // Așteptăm 2 secunde sa se incarce imaginile pe retea, apoi trecem la showcase
+                setTimeout(() => { setPhase('SHOWCASE', 15); }, 2000); 
+            }
+            else if (oldPhase === 'SHOWCASE') {
+                setPhase('RESULTS', 0);
+            }
+        }
+
+        function checkAllDrawingsSubmitted() {
+            if(gameState.phase !== 'DRAWING') return;
+            let allSubmitted = gameState.players.every(p => p.drawingData !== null);
+            if(allSubmitted) {
+                clearInterval(hostInterval);
+                setPhase('SHOWCASE', 15); // 15 secunde pentru votat
+            }
+        }
+
+        // --- LOGICĂ CLIENT (GUEST) ---
+        function joinTable() {
             const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
-            if(code.length === 0) return;
-            joinRoom(code);
-        }
+            if(code.length !== 5) return showToast("Cod invalid!");
 
-        function joinRoom(hostId) {
-            showToast("Se conectează...");
+            showToast("Conectare...");
             peer = new Peer();
 
-            peer.on('open', () => {
-                conn = peer.connect("CMNSCRB-" + hostId);
-                conn.on('open', () => setupConnectionHandlers());
-                conn.on('error', () => showToast("Nu am găsit camera!"));
+            peer.on('open', (id) => {
+                myId = id;
+                hostConnection = peer.connect("CMNART-" + code);
+                
+                hostConnection.on('open', () => {
+                    hostConnection.send({ type: 'JOIN', name: myName });
+                });
+
+                hostConnection.on('data', (data) => {
+                    if(data.type === 'STATE') handleStateUpdate(data.state);
+                    if(data.type === 'ERROR') { showToast(data.msg); switchScreen('menuScreen'); }
+                });
+
+                hostConnection.on('close', () => {
+                    showToast("Gazda a închis masa.");
+                    switchScreen('menuScreen');
+                });
             });
         }
 
-        function setupConnectionHandlers() {
-            showToast("Sincronizat!", 2000);
-            switchScreen('whiteboard');
-            resizeCanvas(); // Ajustează canvas-ul când ecranul e afișat
+        // --- SINCRONIZARE UI CURENT (Ambele roluri) ---
+        let currentPhaseRendered = "";
 
-            // Recepționare date de la celălalt jucător
-            conn.on('data', (data) => {
-                if (data.t === 'd') {
-                    // Desenare linie (Preluată de la partener)
-                    drawLine(data.x0, data.y0, data.x1, data.y1, data.c, data.s, false);
-                } else if (data.t === 'c') {
-                    // Ștergere tablă (Comandă preluată)
-                    clearBoard(false);
+        function handleStateUpdate(newState) {
+            gameState = newState; // Suprascrie local
+
+            // Actualizare ecran specific
+            if(gameState.phase === 'LOBBY') {
+                if(currentPhaseRendered !== 'LOBBY') switchScreen('lobbyScreen');
+                updateLobbyUI();
+            }
+            else if(gameState.phase === 'VOTE_WORD') {
+                if(currentPhaseRendered !== 'VOTE_WORD') {
+                    switchScreen('wordVoteScreen');
+                    renderWordOptions();
                 }
-            });
-
-            conn.on('close', () => {
-                document.getElementById('statusDot').style.background = '#ef4444';
-                document.getElementById('statusText').innerText = 'Deconectat';
-                showToast("Partenerul a părăsit sesiunea.", 5000);
-            });
-        }
-
-        // Auto-join pentru scanarea Codului QR
-        window.onload = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const joinId = urlParams.get('join');
-            if (joinId) { switchScreen('join'); joinRoom(joinId); }
-        };
-
-        // --- 3. MOTORUL DE DESENARE PE CANVAS ---
-        const canvas = document.getElementById('drawingBoard');
-        const ctx = canvas.getContext('2d');
-        
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
-        
-        // Unelte active
-        let currentColor = '#000000';
-        let currentSize = 4;
-        let isEraserMode = false;
-
-        // Referințe Controale UI
-        const colorPicker = document.getElementById('colorPicker');
-        const brushSize = document.getElementById('brushSize');
-        const btnPen = document.getElementById('btnPen');
-        const btnEraser = document.getElementById('btnEraser');
-
-        // Funcție pentru fundal alb (dacă nu-l punem, salvarea imaginii va fi cu fundal negru transparent)
-        function initWhiteBackground() {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // Redimensionare Canvas la mărimea ferestrei
-        function resizeCanvas() {
-            // Salvăm desenul curent
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                document.getElementById('wordTimer').innerText = gameState.timer;
+            }
+            else if(gameState.phase === 'DRAWING') {
+                if(currentPhaseRendered !== 'DRAWING') {
+                    switchScreen('drawingScreen');
+                    document.getElementById('drawWordLabel').innerText = gameState.selectedWord;
+                    initCanvas(); // Resetează tabla
+                }
+                document.getElementById('drawTimer').innerText = gameState.timer;
+            }
+            else if(gameState.phase === 'SHOWCASE') {
+                if(currentPhaseRendered !== 'SHOWCASE') {
+                    switchScreen('showcaseScreen');
+                    renderShowcase();
+                }
+                document.getElementById('showcaseTimer').innerText = gameState.timer;
+            }
+            else if(gameState.phase === 'RESULTS') {
+                if(currentPhaseRendered !== 'RESULTS') {
+                    switchScreen('resultScreen');
+                    renderResults();
+                }
+            }
             
+            currentPhaseRendered = gameState.phase;
+        }
+
+        function updateLobbyUI() {
+            const list = document.getElementById('playerList');
+            list.innerHTML = "";
+            for(let i=0; i<4; i++) {
+                let p = gameState.players[i];
+                if(p) {
+                    list.innerHTML += `<div class="player-slot filled">${p.name} ${p.id === gameState.players[0].id ? '👑' : ''}</div>`;
+                } else {
+                    list.innerHTML += `<div class="player-slot">Loc Liber</div>`;
+                }
+            }
+        }
+
+        // --- ACȚIUNI JUCĂTOR (TRIMITERE SPRE GAZDA) ---
+        function sendToHost(data) {
+            if(isHost) handleDataAsHost({peer: myId}, data);
+            else if(hostConnection) hostConnection.send(data);
+        }
+
+        // --- FAZA 1: VOTARE CUVÂNT UI ---
+        function renderWordOptions() {
+            const container = document.getElementById('wordOptionsContainer');
+            container.innerHTML = "";
+            gameState.wordOptions.forEach((word, index) => {
+                let btn = document.createElement('button');
+                btn.className = 'word-btn';
+                btn.innerText = word;
+                btn.onclick = () => {
+                    document.querySelectorAll('.word-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    sendToHost({ type: 'VOTE_WORD', index: index });
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // --- FAZA 2: MOTOR DE DESENARE (LOCAL) ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let brushColor = '#000000';
+        let brushSz = 5;
+        let isEraser = false;
+
+        function initCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            
-            initWhiteBackground();
-            // Restaurăm desenul (îl punem înapoi peste noul canvas redimensionat)
-            ctx.putImageData(imgData, 0, 0);
-            
-            // Setări implicite pensulă
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-        }
-        window.addEventListener('resize', resizeCanvas);
-        initWhiteBackground(); // Initial call
-
-        // Preia coordonatele ABSOLUTE ale mouse-ului/degetului
-        function getCoords(e) {
-            let clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            let clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            return { x: clientX, y: clientY };
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
         }
 
-        // Functia principala de desen
-        function drawLine(x0, y0, x1, y1, color, size, emit) {
-            ctx.beginPath();
-            ctx.moveTo(x0, y0);
-            ctx.lineTo(x1, y1);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = size;
-            ctx.stroke();
-            ctx.closePath();
-
-            // Dacă emit == true, înseamnă că NOI am desenat. Trimitem coordonatele partenerului!
-            if (!emit || !conn || !conn.open) return;
-            
-            // Trimitem un pachet ultra-mic JSON
-            conn.send({
-                t: 'd', // Type: Draw
-                x0: x0, y0: y0,
-                x1: x1, y1: y1,
-                c: color, s: size
-            });
-        }
-
-        function clearBoard(emit) {
-            initWhiteBackground();
-            if (emit && conn && conn.open) {
-                conn.send({ t: 'c' }); // Type: Clear
-            }
-        }
-
-        // --- 4. EVENIMENTE MOUSE & TOUCH ---
-        
-        function startDrawing(e) {
-            isDrawing = true;
-            const pos = getCoords(e);
-            lastX = pos.x;
-            lastY = pos.y;
-            // Desenează un punct imediat la click (pentru puncte simple)
-            drawLine(lastX, lastY, lastX, lastY, isEraserMode ? '#ffffff' : currentColor, currentSize, true);
-        }
-
+        function startDraw(e) { isDrawing = true; draw(e); }
+        function endDraw() { isDrawing = false; ctx.beginPath(); }
         function draw(e) {
-            if (!isDrawing) return;
-            e.preventDefault(); // Oprește comportamentul nativ de scroll (Pinch/Zoom) pe mobil
+            if(!isDrawing) return;
+            e.preventDefault();
+            let x = e.clientX || (e.touches && e.touches[0].clientX);
+            let y = e.clientY || (e.touches && e.touches[0].clientY);
             
-            const pos = getCoords(e);
-            const useColor = isEraserMode ? '#ffffff' : currentColor;
+            ctx.lineWidth = brushSz;
+            ctx.strokeStyle = isEraser ? '#ffffff' : brushColor;
             
-            drawLine(lastX, lastY, pos.x, pos.y, useColor, currentSize, true);
-            
-            lastX = pos.x;
-            lastY = pos.y;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
         }
 
-        function stopDrawing() {
-            isDrawing = false;
-        }
-
-        // Mouse Events
-        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousedown', startDraw);
         canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-
-        // Touch Events (Mobil)
-        canvas.addEventListener('touchstart', startDrawing, {passive: false});
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', startDraw, {passive: false});
         canvas.addEventListener('touchmove', draw, {passive: false});
-        canvas.addEventListener('touchend', stopDrawing);
-        canvas.addEventListener('touchcancel', stopDrawing);
+        canvas.addEventListener('touchend', endDraw);
 
-        // --- 5. LOGICA TOOLBAR-ULUI ---
-        
-        colorPicker.addEventListener('input', (e) => {
-            currentColor = e.target.value;
-            if(isEraserMode) { // Dacă alegi o culoare, se dezactivează radiera automat
-                isEraserMode = false;
-                btnEraser.classList.remove('active');
-                btnPen.classList.add('active');
+        // Toolbar Tools
+        document.getElementById('colorPicker').addEventListener('input', e => { brushColor = e.target.value; isEraser = false; document.getElementById('btnPen').classList.add('active'); document.getElementById('btnEraser').classList.remove('active'); });
+        document.getElementById('brushSize').addEventListener('input', e => brushSz = e.target.value);
+        document.getElementById('btnPen').addEventListener('click', e => { isEraser = false; e.target.classList.add('active'); document.getElementById('btnEraser').classList.remove('active'); });
+        document.getElementById('btnEraser').addEventListener('click', e => { isEraser = true; e.target.classList.add('active'); document.getElementById('btnPen').classList.remove('active'); });
+        document.getElementById('btnClear').addEventListener('click', initCanvas);
+
+        // Submit Automat
+        function forceSubmitDrawings() {
+            // Se apelează la sfârșitul timpului, clientul extrage poza
+            const dataURL = canvas.toDataURL('image/jpeg', 0.5); // Calitate redusă pt a trimite rapid prin rețea
+            sendToHost({ type: 'SUBMIT_DRAWING', image: dataURL });
+        }
+
+        // --- FAZA 3: SHOWCASE UI ---
+        function renderShowcase() {
+            const grid = document.getElementById('showcaseGrid');
+            grid.innerHTML = "";
+            gameState.players.forEach(p => {
+                if(!p.drawingData) return; // A sărit sau s-a deconectat
+                let card = document.createElement('div');
+                card.className = 'drawing-card';
+                card.innerHTML = `
+                    <img src="${p.drawingData}">
+                    <div class="drawing-author">${p.name}</div>
+                    <div class="votes-badge" id="voteCount-${p.id}">0</div>
+                `;
+                
+                // Poți vota doar pe alții, nu pe tine
+                if(p.id !== myId) {
+                    card.onclick = () => {
+                        document.querySelectorAll('.drawing-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        sendToHost({ type: 'VOTE_DRAWING', targetId: p.id });
+                    };
+                }
+                grid.appendChild(card);
+            });
+            
+            // Actualizăm live badge-urile de voturi
+            setInterval(() => {
+                if(gameState.phase !== 'SHOWCASE') return;
+                let counts = {};
+                gameState.players.forEach(p => counts[p.id] = 0);
+                gameState.players.forEach(p => { if(p.voteDrawingId) counts[p.voteDrawingId]++; });
+                
+                for(let id in counts) {
+                    let el = document.getElementById(`voteCount-${id}`);
+                    if(el) el.innerText = counts[id];
+                }
+            }, 500);
+        }
+
+        // --- FAZA 4: REZULTATE UI ---
+        function renderResults() {
+            // Calculăm cine are cele mai multe voturi
+            let counts = {};
+            gameState.players.forEach(p => counts[p.id] = 0);
+            gameState.players.forEach(p => { if(p.voteDrawingId) counts[p.voteDrawingId]++; });
+            
+            let winnerId = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+            let winner = gameState.players.find(p => p.id === winnerId);
+
+            if(winner && winner.drawingData) {
+                document.getElementById('winnerImg').src = winner.drawingData;
+                document.getElementById('winnerName').innerText = `Câștigător: ${winner.name} 🏆`;
+            } else {
+                document.getElementById('winnerName').innerText = "Nimeni nu a câștigat.";
             }
-        });
 
-        brushSize.addEventListener('input', (e) => {
-            currentSize = e.target.value;
-        });
-
-        btnPen.addEventListener('click', () => {
-            isEraserMode = false;
-            btnPen.classList.add('active');
-            btnEraser.classList.remove('active');
-        });
-
-        btnEraser.addEventListener('click', () => {
-            isEraserMode = true;
-            btnEraser.classList.add('active');
-            btnPen.classList.remove('active');
-        });
-
-        document.getElementById('btnClear').addEventListener('click', () => {
-            if(confirm("Ești sigur că vrei să ștergi tot desenul pentru amândoi?")) {
-                clearBoard(true);
+            if(isHost) {
+                document.getElementById('btnRestart').style.display = 'block';
             }
-        });
+        }
 
-        document.getElementById('btnDownload').addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.download = `Scribble_CMN_${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            showToast("Desen descărcat!");
-        });
+        function restartToLobby() {
+            if(!isHost) return;
+            setPhase('LOBBY', 0);
+            // Curățăm voturile trecute
+            gameState.players.forEach(p => { p.voteWordIndex = -1; p.drawingData = null; p.voteDrawingId = null; });
+            broadcastState();
+        }
 
     </script>
 </body>

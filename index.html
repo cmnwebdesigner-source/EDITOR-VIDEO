@@ -1,236 +1,216 @@
 <!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-  <meta name="theme-color" content="#060816" />
-  <title>Phone Duel Arena - joc 2 telefoane</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#070a18">
+  <title>QR Phone Duel Lite</title>
+
+  <!-- Pentru QR + compresie + scanare QR. Dacă nu se încarcă, rămâne fallback copy/paste. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
   <style>
     :root{
-      --bg:#060816;
-      --panel:#11162b;
-      --panel2:#171d36;
-      --line:rgba(255,255,255,.12);
-      --text:#f6f8ff;
+      --bg:#070a18;
+      --panel:#11172e;
+      --panel2:#161d38;
+      --text:#f5f7ff;
       --muted:#aab3d9;
-      --accent:#7c5cff;
-      --accent2:#00e0ff;
-      --danger:#ff3b6b;
-      --good:#32e875;
-      --warn:#ffd166;
-      --shadow:0 18px 50px rgba(0,0,0,.35);
-      --safeTop: env(safe-area-inset-top, 0px);
-      --safeBottom: env(safe-area-inset-bottom, 0px);
+      --line:rgba(255,255,255,.13);
+      --blue:#00d9ff;
+      --purple:#7c5cff;
+      --red:#ff3b6b;
+      --green:#35e58b;
+      --yellow:#ffd166;
+      --safeTop:env(safe-area-inset-top,0px);
+      --safeBottom:env(safe-area-inset-bottom,0px);
     }
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-    button,textarea,input,select{font:inherit}
-    button{border:0;border-radius:16px;background:linear-gradient(135deg,var(--accent),#43b6ff);color:white;padding:12px 14px;font-weight:800;box-shadow:0 10px 25px rgba(124,92,255,.25);cursor:pointer}
+    html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    button,textarea{font:inherit}
+    button{
+      border:0;border-radius:16px;padding:12px 14px;font-weight:900;color:white;
+      background:linear-gradient(135deg,var(--purple),var(--blue));
+      box-shadow:0 10px 26px rgba(0,217,255,.18);
+    }
     button.secondary{background:rgba(255,255,255,.08);border:1px solid var(--line);box-shadow:none}
-    button.danger{background:linear-gradient(135deg,#ff3b6b,#ff8a3d)}
-    button.good{background:linear-gradient(135deg,#21d777,#00c2ff)}
-    button.small{border-radius:12px;padding:8px 10px;font-size:13px}
-    button:disabled{opacity:.45;filter:grayscale(.5);cursor:not-allowed}
-    textarea{width:100%;min-height:92px;resize:vertical;background:#070a18;color:#e8ecff;border:1px solid var(--line);border-radius:14px;padding:10px;outline:none}
-    input,select{background:#070a18;color:#e8ecff;border:1px solid var(--line);border-radius:12px;padding:10px;outline:none}
+    button.danger{background:linear-gradient(135deg,var(--red),#ff8a3d)}
+    button.green{background:linear-gradient(135deg,var(--green),var(--blue))}
+    button.small{padding:9px 10px;border-radius:12px;font-size:13px}
+    button:disabled{opacity:.45}
+    textarea{
+      width:100%;min-height:76px;border:1px solid var(--line);border-radius:14px;padding:10px;
+      background:#070a18;color:#eef2ff;resize:vertical;outline:none;font-size:12px;
+    }
     .app{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr;background:
-      radial-gradient(circle at 10% 5%,rgba(124,92,255,.25),transparent 28%),
-      radial-gradient(circle at 90% 0%,rgba(0,224,255,.2),transparent 28%),
+      radial-gradient(circle at 10% 0%,rgba(124,92,255,.25),transparent 28%),
+      radial-gradient(circle at 90% 0%,rgba(0,217,255,.18),transparent 28%),
       var(--bg)}
-    .topbar{height:calc(58px + var(--safeTop));padding:var(--safeTop) 12px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);background:rgba(6,8,22,.75);backdrop-filter:blur(14px);z-index:10}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.2px}
-    .logo{width:34px;height:34px;border-radius:12px;background:conic-gradient(from 180deg,var(--accent),var(--accent2),var(--danger),var(--accent));box-shadow:0 8px 24px rgba(0,224,255,.22);position:relative}
-    .logo:after{content:"";position:absolute;inset:8px;border-radius:8px;background:#070a18}
-    .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);background:rgba(255,255,255,.06);padding:7px 9px;border-radius:999px;white-space:nowrap}
-    .statusDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6d748f;margin-right:6px;vertical-align:-1px}
-    .statusDot.ok{background:var(--good);box-shadow:0 0 0 4px rgba(50,232,117,.14)}
-    .screen{position:relative;min-height:0;overflow:hidden}
-    canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;background:#060816}
-    .hud{position:absolute;left:10px;right:10px;top:10px;display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;gap:10px;z-index:5}
-    .hudCard{background:rgba(12,16,34,.62);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:10px 12px;backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .score{font-size:28px;font-weight:950;line-height:1}
-    .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
-    .hpWrap{width:130px;height:9px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden;margin-top:6px}
-    .hp{height:100%;width:100%;background:linear-gradient(90deg,var(--good),var(--warn),var(--danger));border-radius:inherit}
-    .centerMsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:min(92vw,520px);text-align:center;z-index:6;pointer-events:none}
-    .centerMsg .big{font-size:clamp(30px,9vw,56px);font-weight:950;text-shadow:0 8px 24px rgba(0,0,0,.45)}
-    .centerMsg .sub{font-size:14px;color:var(--muted);margin-top:8px;line-height:1.45}
-    .controls{position:absolute;left:0;right:0;bottom:calc(10px + var(--safeBottom));display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px;z-index:7;pointer-events:none}
-    .pad{display:flex;gap:12px;pointer-events:auto}
-    .roundBtn{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 30px rgba(0,0,0,.28);user-select:none}
-    .roundBtn.fire{width:92px;height:92px;background:radial-gradient(circle at 35% 25%,#fff7,transparent 20%),linear-gradient(135deg,#ff3b6b,#ff9c3d);font-size:30px}
-    .roundBtn.dash{background:linear-gradient(135deg,#7c5cff,#00e0ff)}
-    .roundBtn.active{transform:scale(.94);filter:brightness(1.18)}
-    .drawer{position:absolute;inset:0;z-index:20;background:rgba(3,5,14,.82);backdrop-filter:blur(18px);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
-    .drawer.hidden{display:none}
-    .panel{width:min(760px,100%);max-height:calc(100vh - 32px);overflow:auto;background:linear-gradient(180deg,rgba(23,29,54,.98),rgba(12,16,34,.98));border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:18px}
-    .panel h1{font-size:28px;margin:0 0 8px}
-    .panel h2{font-size:18px;margin:18px 0 10px}
-    .panel p{color:var(--muted);line-height:1.45;margin:8px 0}
-    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .card{background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:18px;padding:12px}
-    .step{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
-    .num{width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:950;flex:0 0 auto}
+    .top{
+      height:calc(58px + var(--safeTop));padding:var(--safeTop) 12px 0;
+      display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);
+      background:rgba(7,10,24,.72);backdrop-filter:blur(14px);z-index:20;
+    }
+    .brand{font-weight:1000;letter-spacing:.2px;display:flex;align-items:center;gap:9px}
+    .logo{width:31px;height:31px;border-radius:11px;background:conic-gradient(var(--blue),var(--purple),var(--red),var(--blue));box-shadow:0 0 26px rgba(0,217,255,.25)}
+    .status{font-size:12px;color:var(--muted);border:1px solid var(--line);background:rgba(255,255,255,.06);padding:7px 9px;border-radius:999px}
+    .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#777;margin-right:6px}
+    .dot.ok{background:var(--green);box-shadow:0 0 0 4px rgba(53,229,139,.14)}
+    .gameWrap{position:relative;overflow:hidden}
+    canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;background:#060817}
+    .hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;gap:8px;z-index:5;pointer-events:none}
+    .cardHud{background:rgba(11,16,35,.67);border:1px solid var(--line);border-radius:16px;padding:9px 11px;min-width:108px;backdrop-filter:blur(10px)}
+    .label{font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:800}
+    .score{font-size:26px;font-weight:1000;line-height:1}
+    .hpBox{height:8px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden;margin-top:6px}
+    .hp{height:100%;width:100%;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red))}
+    .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(92vw,420px);z-index:6;pointer-events:none}
+    .center .big{font-size:clamp(32px,10vw,56px);font-weight:1000;text-shadow:0 12px 30px rgba(0,0,0,.5)}
+    .center .sub{font-size:14px;color:var(--muted);line-height:1.45;margin-top:8px}
+    .controls{position:absolute;left:0;right:0;bottom:calc(12px + var(--safeBottom));display:flex;justify-content:space-between;align-items:flex-end;padding:0 14px;z-index:8;pointer-events:none}
+    .pad{display:flex;gap:11px;pointer-events:auto}
+    .round{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font-size:25px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 30px rgba(0,0,0,.25);user-select:none}
+    .fire{width:92px;height:92px;background:radial-gradient(circle at 35% 25%,#fff7,transparent 18%),linear-gradient(135deg,var(--red),#ff9b38);font-size:31px}
+    .active{transform:scale(.94);filter:brightness(1.15)}
+    .menu{position:absolute;inset:0;background:rgba(4,6,16,.86);backdrop-filter:blur(17px);z-index:40;overflow:auto;padding:16px;display:flex;align-items:flex-start;justify-content:center}
+    .menu.hide{display:none}
+    .panel{width:min(720px,100%);background:linear-gradient(180deg,rgba(22,29,56,.98),rgba(11,16,35,.98));border:1px solid var(--line);border-radius:24px;padding:17px;box-shadow:0 22px 60px rgba(0,0,0,.42)}
+    h1{font-size:26px;margin:0 0 8px}
+    h2{font-size:17px;margin:15px 0 9px}
+    p{color:var(--muted);line-height:1.45;margin:8px 0}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .box{background:rgba(255,255,255,.055);border:1px solid var(--line);border-radius:18px;padding:12px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .qrBox{display:grid;place-items:center;min-height:270px;background:white;border-radius:18px;padding:12px;overflow:hidden}
+    .qrBox:empty:before{content:"QR-ul apare aici";color:#333;font-weight:800}
+    .videoBox{position:relative;background:#050713;border:1px solid var(--line);border-radius:18px;overflow:hidden;min-height:230px;display:grid;place-items:center}
+    video{width:100%;max-height:270px;display:block;background:#000}
     .mini{font-size:12px;color:var(--muted)}
+    .toast{position:absolute;left:50%;bottom:calc(122px + var(--safeBottom));transform:translateX(-50%);background:rgba(10,15,35,.9);border:1px solid var(--line);border-radius:999px;padding:10px 13px;z-index:60;opacity:0;transition:.25s;white-space:nowrap;pointer-events:none}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-5px)}
     .hidden{display:none!important}
-    .toast{position:absolute;left:50%;bottom:calc(126px + var(--safeBottom));transform:translateX(-50%);background:rgba(10,14,31,.86);border:1px solid var(--line);border-radius:999px;padding:10px 14px;z-index:40;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.25s;white-space:nowrap}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
-    .modeTabs{display:flex;gap:8px;overflow:auto;padding-bottom:4px}
-    .modeTabs button{white-space:nowrap}
-    .modeTabs button.selected{outline:2px solid rgba(0,224,255,.55)}
-    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#070a18;border:1px solid var(--line);border-radius:8px;padding:2px 6px;color:#dce4ff}
-    @media (max-width:560px){
-      .grid,.grid3{grid-template-columns:1fr}
+    @media(max-width:640px){
+      .grid{grid-template-columns:1fr}
+      .round{width:64px;height:64px}
+      .fire{width:88px;height:88px}
       .panel{border-radius:18px}
-      .topbar{gap:4px}
       .brand span{font-size:15px}
-      .pill{font-size:11px;padding:6px 7px}
-      .roundBtn{width:64px;height:64px}
-      .roundBtn.fire{width:88px;height:88px}
     }
   </style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar">
-    <div class="brand"><div class="logo"></div><span>Phone Duel Arena</span></div>
-    <div class="row" style="gap:6px">
-      <div class="pill" id="connPill"><span class="statusDot" id="statusDot"></span><span id="connText">Offline</span></div>
-      <button class="small secondary" id="menuBtn">Meniu</button>
+  <div class="top">
+    <div class="brand"><div class="logo"></div><span>QR Phone Duel Lite</span></div>
+    <div class="row">
+      <div class="status"><span id="dot" class="dot"></span><span id="statusText">Offline</span></div>
+      <button class="small secondary" id="openMenuBtn">Meniu</button>
     </div>
-  </header>
+  </div>
 
-  <main class="screen" id="screen">
+  <div class="gameWrap">
     <canvas id="game"></canvas>
 
     <div class="hud">
-      <div class="hudCard">
-        <div class="label">Tu</div>
-        <div class="score"><span id="myScore">0</span></div>
-        <div class="hpWrap"><div class="hp" id="myHp"></div></div>
+      <div class="cardHud">
+        <div class="label">TU</div>
+        <div class="score" id="myScore">0</div>
+        <div class="hpBox"><div class="hp" id="myHp"></div></div>
       </div>
-      <div class="hudCard" style="text-align:right">
-        <div class="label">Adversar</div>
-        <div class="score"><span id="opScore">0</span></div>
-        <div class="hpWrap"><div class="hp" id="opHp"></div></div>
+      <div class="cardHud" style="text-align:right">
+        <div class="label">ADVERSAR</div>
+        <div class="score" id="enemyScore">0</div>
+        <div class="hpBox"><div class="hp" id="enemyHp"></div></div>
       </div>
     </div>
 
-    <div class="centerMsg" id="centerMsg">
-      <div class="big">PHONE DUEL</div>
-      <div class="sub">Țineți telefoanele cu partea de sus una spre cealaltă. Proiectilele care ies prin marginea de sus intră pe ecranul celuilalt.</div>
+    <div class="center" id="center">
+      <div class="big" id="centerBig">PHONE DUEL</div>
+      <div class="sub" id="centerSub">Simplu: conectați prin QR, puneți telefoanele cap în cap și trageți prin marginea de sus.</div>
     </div>
 
     <div class="controls">
       <div class="pad">
-        <div class="roundBtn" id="leftBtn">◀</div>
-        <div class="roundBtn" id="rightBtn">▶</div>
+        <div class="round" id="leftBtn">◀</div>
+        <div class="round" id="rightBtn">▶</div>
       </div>
       <div class="pad">
-        <div class="roundBtn dash" id="dashBtn">⚡</div>
-        <div class="roundBtn fire" id="fireBtn">●</div>
+        <div class="round fire" id="fireBtn">●</div>
       </div>
     </div>
 
     <div class="toast" id="toast"></div>
-  </main>
-</div>
 
-<div class="drawer" id="drawer">
-  <div class="panel">
-    <h1>Phone Duel Arena</h1>
-    <p>Variantă web inspirată de jocurile „across screens”: două telefoane devin o singură arenă. Nu folosește numele, codul sau grafica jocului original.</p>
+    <div class="menu" id="menu">
+      <div class="panel">
+        <h1>QR Phone Duel Lite</h1>
+        <p>Versiune simplă și stabilă: un singur mod, două telefoane, QR pentru conectare, fără server.</p>
 
-    <div class="modeTabs" id="modeTabs">
-      <button class="selected" data-mode="duel">DUEL</button>
-      <button class="secondary" data-mode="deflect">DEFLECT</button>
-      <button class="secondary" data-mode="defend">DEFEND</button>
-      <button class="secondary" data-mode="solo">SOLO TEST</button>
-    </div>
+        <div class="grid">
+          <div class="box">
+            <h2>1. Telefon Host</h2>
+            <p class="mini">Pe primul telefon apeși Host. Arăți QR-ul către telefonul Join.</p>
+            <div class="row">
+              <button id="hostBtn">Creează Host QR</button>
+              <button id="copyOwnBtn" class="secondary">Copiază cod</button>
+            </div>
+          </div>
 
-    <div class="grid">
-      <div class="card">
-        <h2>Conectare 2 telefoane</h2>
-        <div class="row">
-          <button id="hostBtn">1. Host</button>
-          <button id="joinBtn" class="secondary">2. Join</button>
-          <button id="resetNetBtn" class="secondary">Reset conexiune</button>
+          <div class="box">
+            <h2>2. Telefon Join</h2>
+            <p class="mini">Pe al doilea telefon apeși Scan QR și scanezi QR-ul de pe Host. Apoi Join afișează QR Answer.</p>
+            <div class="row">
+              <button id="scanBtn" class="green">Scanează QR</button>
+              <button id="stopScanBtn" class="secondary">Stop cameră</button>
+            </div>
+          </div>
         </div>
-        <p class="mini">Fără server: conexiunea se face prin WebRTC. Trebuie copiat codul Host pe telefonul Join, apoi codul Answer înapoi pe Host.</p>
-      </div>
 
-      <div class="card">
-        <h2>Joc</h2>
-        <div class="row">
-          <button id="startBtn" class="good">Start rundă</button>
-          <button id="pauseBtn" class="secondary">Pauză</button>
-          <button id="soloBtn" class="secondary">Solo test</button>
+        <div class="grid" style="margin-top:10px">
+          <div class="box">
+            <h2>QR-ul meu</h2>
+            <div class="qrBox" id="qr"></div>
+            <p class="mini" id="ownInfo">Aici apare QR-ul Host sau Answer.</p>
+            <textarea id="ownCode" readonly placeholder="Codul apare aici, ca fallback dacă QR-ul nu merge."></textarea>
+          </div>
+
+          <div class="box">
+            <h2>Scanare / conectare</h2>
+            <div class="videoBox">
+              <video id="cam" playsinline muted></video>
+              <canvas id="scanCanvas" class="hidden"></canvas>
+              <div id="scanHint" class="mini">Camera apare aici. Pe iPhone/Android trebuie HTTPS sau localhost pentru cameră.</div>
+            </div>
+            <p class="mini">Fallback: lipește codul aici dacă nu merge camera.</p>
+            <textarea id="incomingCode" placeholder="Lipește aici codul Host sau Answer..."></textarea>
+            <div class="row" style="margin-top:8px">
+              <button id="useCodeBtn">Folosește codul lipit</button>
+              <button id="pasteBtn" class="secondary">Paste</button>
+            </div>
+          </div>
         </div>
-        <p class="mini">Controlează nava cu butoanele, swipe pe ecran sau înclinarea telefonului. Trage proiectile prin marginea de sus.</p>
-      </div>
-    </div>
 
-    <div class="card" id="hostBox" style="margin-top:12px">
-      <h2>Host code</h2>
-      <div class="step"><div class="num">1</div><div>Apasă <b>Host</b>, așteaptă să apară codul, apoi trimite-l/copiază-l pe al doilea telefon.</div></div>
-      <textarea id="offerOut" placeholder="Aici apare codul Host..." readonly></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="small secondary" id="copyOfferBtn">Copiază Host code</button>
-      </div>
-      <div class="step"><div class="num">3</div><div>După ce telefonul Join generează <b>Answer code</b>, lipește-l aici pe Host și apasă Conectează.</div></div>
-      <textarea id="answerIn" placeholder="Lipește Answer code aici..."></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="small" id="acceptAnswerBtn">Conectează Host</button>
-      </div>
-    </div>
-
-    <div class="card" id="joinBox" style="margin-top:12px">
-      <h2>Join code</h2>
-      <div class="step"><div class="num">2</div><div>Lipește codul primit de la Host, apoi apasă <b>Creează Answer</b>.</div></div>
-      <textarea id="offerIn" placeholder="Lipește Host code aici..."></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="small" id="createAnswerBtn">Creează Answer</button>
-      </div>
-      <textarea id="answerOut" placeholder="Aici apare Answer code..." readonly style="margin-top:8px"></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="small secondary" id="copyAnswerBtn">Copiază Answer code</button>
-      </div>
-    </div>
-
-    <div class="grid3" style="margin-top:12px">
-      <div class="card">
-        <h2>Setări</h2>
-        <label class="mini">Control</label>
-        <select id="controlMode">
-          <option value="touch">Butoane + swipe</option>
-          <option value="tilt">Înclinare telefon + butoane</option>
-        </select>
-        <div class="row" style="margin-top:8px">
-          <button class="small secondary" id="enableTiltBtn">Activează tilt</button>
-          <button class="small secondary" id="calibrateBtn">Calibrează</button>
+        <div class="box" style="margin-top:10px">
+          <h2>Joc</h2>
+          <div class="row">
+            <button id="startBtn" class="green">Start rundă</button>
+            <button id="soloBtn" class="secondary">Test solo</button>
+            <button id="resetBtn" class="danger">Reset</button>
+            <button id="closeMenuBtn" class="secondary">Închide meniul</button>
+          </div>
+          <p class="mini">
+            Pași rapizi:
+            <br>1) Telefon A: <b>Creează Host QR</b>.
+            <br>2) Telefon B: <b>Scanează QR</b>. Va apărea <b>Answer QR</b>.
+            <br>3) Telefon A: <b>Scanează Answer QR</b>.
+            <br>4) Apăsați <b>Start rundă</b>.
+          </p>
         </div>
-      </div>
-      <div class="card">
-        <h2>Aranjare telefoane</h2>
-        <p class="mini">Pentru efectul corect, puneți telefoanele <b>cap în cap</b>, cu partea de sus a ambelor ecrane orientată spre mijloc.</p>
-        <button class="small secondary" id="flipBtn">Inversează stânga/dreapta</button>
-      </div>
-      <div class="card">
-        <h2>Debug</h2>
-        <p class="mini" id="debugInfo">FPS: -- | Ping: --</p>
-        <button class="small secondary" id="hideMenuBtn">Închide meniul</button>
-      </div>
-    </div>
 
-    <div class="card" style="margin-top:12px">
-      <h2>Scurt ghid</h2>
-      <p class="mini">
-        <span class="kbd">DUEL</span>: tragi în adversar și eviți gloanțele care vin de pe celălalt telefon.
-        <br><span class="kbd">DEFLECT</span>: lovești bila ca să treacă pe ecranul adversarului.
-        <br><span class="kbd">DEFEND</span>: amândoi apărați zona de valuri de inamici trimiși între ecrane.
-      </p>
+        <p class="mini">Notă: QR-ul folosește WebRTC. Dacă scanarea camerei nu pornește din fișier local, deschide HTML-ul prin HTTPS sau localhost. Copy/paste merge ca rezervă.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -239,869 +219,577 @@
 (() => {
   "use strict";
 
-  const $ = (id) => document.getElementById(id);
-  const canvas = $("game");
-  const ctx = canvas.getContext("2d", { alpha:false });
+  const $ = id => document.getElementById(id);
 
-  const ui = {
-    drawer:$("drawer"), menuBtn:$("menuBtn"), hideMenuBtn:$("hideMenuBtn"),
-    connText:$("connText"), statusDot:$("statusDot"), centerMsg:$("centerMsg"),
-    myScore:$("myScore"), opScore:$("opScore"), myHp:$("myHp"), opHp:$("opHp"),
-    toast:$("toast"), debug:$("debugInfo"),
-    hostBtn:$("hostBtn"), joinBtn:$("joinBtn"), resetNetBtn:$("resetNetBtn"),
-    startBtn:$("startBtn"), pauseBtn:$("pauseBtn"), soloBtn:$("soloBtn"),
-    offerOut:$("offerOut"), offerIn:$("offerIn"), answerOut:$("answerOut"), answerIn:$("answerIn"),
-    copyOfferBtn:$("copyOfferBtn"), copyAnswerBtn:$("copyAnswerBtn"),
-    acceptAnswerBtn:$("acceptAnswerBtn"), createAnswerBtn:$("createAnswerBtn"),
-    controlMode:$("controlMode"), enableTiltBtn:$("enableTiltBtn"), calibrateBtn:$("calibrateBtn"),
-    leftBtn:$("leftBtn"), rightBtn:$("rightBtn"), fireBtn:$("fireBtn"), dashBtn:$("dashBtn"),
-    flipBtn:$("flipBtn"), modeTabs:$("modeTabs")
+  const el = {
+    canvas:$("game"), dot:$("dot"), status:$("statusText"),
+    menu:$("menu"), openMenu:$("openMenuBtn"), closeMenu:$("closeMenuBtn"),
+    center:$("center"), centerBig:$("centerBig"), centerSub:$("centerSub"),
+    myScore:$("myScore"), enemyScore:$("enemyScore"), myHp:$("myHp"), enemyHp:$("enemyHp"),
+    left:$("leftBtn"), right:$("rightBtn"), fire:$("fireBtn"), toast:$("toast"),
+    host:$("hostBtn"), scan:$("scanBtn"), stopScan:$("stopScanBtn"), qr:$("qr"), ownCode:$("ownCode"),
+    ownInfo:$("ownInfo"), incomingCode:$("incomingCode"), useCode:$("useCodeBtn"),
+    copyOwn:$("copyOwnBtn"), paste:$("pasteBtn"), start:$("startBtn"), solo:$("soloBtn"), reset:$("resetBtn"),
+    cam:$("cam"), scanCanvas:$("scanCanvas"), scanHint:$("scanHint")
   };
 
-  let W = 0, H = 0, DPR = 1;
+  const ctx = el.canvas.getContext("2d");
+  let W=0,H=0,DPR=1;
   function resize(){
     DPR = Math.min(2, window.devicePixelRatio || 1);
-    const r = canvas.getBoundingClientRect();
-    W = Math.max(320, Math.floor(r.width));
-    H = Math.max(480, Math.floor(r.height));
-    canvas.width = Math.floor(W * DPR);
-    canvas.height = Math.floor(H * DPR);
+    const r = el.canvas.getBoundingClientRect();
+    W = Math.max(300, Math.floor(r.width));
+    H = Math.max(420, Math.floor(r.height));
+    el.canvas.width = Math.floor(W*DPR);
+    el.canvas.height = Math.floor(H*DPR);
     ctx.setTransform(DPR,0,0,DPR,0,0);
   }
-  window.addEventListener("resize", resize, {passive:true});
+  window.addEventListener("resize", resize);
   resize();
 
-  const config = {
-    mode:"duel",
-    flipped:false,
-    control:"touch",
-    tiltEnabled:false,
-    tiltZero:0,
-    playerColor:"#00e0ff",
-    enemyColor:"#ff3b6b",
-    bulletSpeed:720,
-    incomingSpeed:660,
-    fireCooldown:0.22,
-    dashCooldown:1.15,
-    maxHp:100,
-    arenaPad:24
-  };
-
-  const state = {
+  const game = {
     running:false,
-    paused:false,
-    solo:false,
     connected:false,
+    solo:false,
     isHost:false,
+    keys:{left:false,right:false,fire:false},
     last:performance.now(),
-    acc:0,
-    fps:0,
-    fpsFrames:0,
-    fpsTime:0,
-    ping:0,
-    keys:{left:false,right:false,fire:false,dash:false},
-    pointer:null,
-    my:{
-      x:.5, y:.86, vx:0, hp:100, score:0, radius:18, cooldown:0, dash:0, inv:0, charge:0
-    },
-    op:{
-      x:.5, hp:100, score:0, radius:18, lastSeen:0
-    },
+    my:{x:.5,y:.84,hp:100,score:0,cool:0,inv:0},
+    enemy:{x:.5,hp:100,score:0},
     bullets:[],
     incoming:[],
     particles:[],
-    stars:[],
-    ball:null,
-    enemies:[],
-    waveTimer:1.2,
+    stars:Array.from({length:70},()=>({x:Math.random(),y:Math.random(),s:Math.random()*1.7+.4,a:Math.random()*.6+.15})),
     shake:0,
-    roundText:"PHONE DUEL",
-    roundSub:"Apasă Start rundă sau conectează două telefoane.",
-    lastNetSend:0,
-    lastPingSent:0
+    netSend:0,
+    lastShotId:0
   };
 
-  for(let i=0;i<80;i++){
-    state.stars.push({x:Math.random(),y:Math.random(),s:Math.random()*2+0.3,a:Math.random()*0.6+0.15});
-  }
-
-  let pc = null;
-  let dc = null;
+  let pc=null, dc=null, scanStream=null, scanTimer=null;
 
   function toast(msg){
-    ui.toast.textContent = msg;
-    ui.toast.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(()=>ui.toast.classList.remove("show"), 2200);
+    el.toast.textContent = msg;
+    el.toast.classList.add("show");
+    clearTimeout(toast.t);
+    toast.t = setTimeout(()=>el.toast.classList.remove("show"),2200);
+  }
+  function vibe(x=35){ try{ navigator.vibrate && navigator.vibrate(x); }catch(e){} }
+  function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+  function setStatus(txt, ok=false){
+    el.status.textContent = txt;
+    el.dot.classList.toggle("ok", ok);
+    game.connected = !!ok;
+  }
+  function showMenu(){ el.menu.classList.remove("hide"); }
+  function hideMenu(){ el.menu.classList.add("hide"); }
+  function updateCenter(title,sub,show=true){
+    el.centerBig.textContent = title;
+    el.centerSub.textContent = sub || "";
+    el.center.style.display = show ? "block" : "none";
+  }
+  function updateHud(){
+    el.myScore.textContent = game.my.score;
+    el.enemyScore.textContent = game.enemy.score;
+    el.myHp.style.width = clamp(game.my.hp,0,100)+"%";
+    el.enemyHp.style.width = clamp(game.enemy.hp,0,100)+"%";
   }
 
-  function vibrate(ms=35){
-    try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){}
+  function pack(obj){
+    const json = JSON.stringify(obj);
+    if(window.LZString){
+      return "QPD1:" + LZString.compressToEncodedURIComponent(json);
+    }
+    return "QPB1:" + btoa(unescape(encodeURIComponent(json)));
+  }
+  function unpack(code){
+    code = (code || "").trim();
+    if(code.startsWith("QPD1:")){
+      return JSON.parse(LZString.decompressFromEncodedURIComponent(code.slice(5)));
+    }
+    if(code.startsWith("QPB1:")){
+      return JSON.parse(decodeURIComponent(escape(atob(code.slice(5)))));
+    }
+    return JSON.parse(code);
   }
 
-  function setConnected(ok, txt){
-    state.connected = ok;
-    ui.connText.textContent = txt || (ok ? "Conectat" : "Offline");
-    ui.statusDot.classList.toggle("ok", ok);
-    if(ok){
-      toast("Conectat! Puneți telefoanele cap în cap.");
-      vibrate([40,30,40]);
+  function makeQR(code, label){
+    el.ownCode.value = code;
+    el.ownInfo.textContent = label + " | lungime cod: " + code.length;
+    el.qr.innerHTML = "";
+    if(window.QRCode){
+      try{
+        new QRCode(el.qr, {
+          text: code,
+          width: 250,
+          height: 250,
+          correctLevel: QRCode.CorrectLevel.L
+        });
+      }catch(e){
+        el.qr.innerHTML = "<div style='color:#111;text-align:center;font-weight:900'>QR prea mare.<br>Folosește copy/paste.</div>";
+      }
+    }else{
+      el.qr.innerHTML = "<div style='color:#111;text-align:center;font-weight:900'>Librăria QR nu s-a încărcat.<br>Folosește copy/paste.</div>";
     }
   }
 
-  function safeB64Encode(obj){
-    const s = JSON.stringify(obj);
-    return btoa(unescape(encodeURIComponent(s)));
-  }
-  function safeB64Decode(code){
-    const cleaned = (code || "").trim().replace(/\s+/g, "");
-    return JSON.parse(decodeURIComponent(escape(atob(cleaned))));
-  }
-  async function copyText(t){
-    try{
-      await navigator.clipboard.writeText(t);
-      toast("Copiat.");
-    }catch(e){
-      toast("Nu pot copia automat. Selectează manual codul.");
-    }
-  }
-  function waitIceComplete(peer){
-    return new Promise((resolve) => {
+  function waitIce(peer){
+    return new Promise(resolve=>{
       if(peer.iceGatheringState === "complete") return resolve();
-      const done = () => {
+      const f=()=>{
         if(peer.iceGatheringState === "complete"){
-          peer.removeEventListener("icegatheringstatechange", done);
+          peer.removeEventListener("icegatheringstatechange",f);
           resolve();
         }
       };
-      peer.addEventListener("icegatheringstatechange", done);
-      setTimeout(resolve, 5000);
+      peer.addEventListener("icegatheringstatechange",f);
+      setTimeout(resolve,4500);
     });
   }
 
+  function closeConn(){
+    stopScan();
+    try{dc && dc.close()}catch(e){}
+    try{pc && pc.close()}catch(e){}
+    dc=null; pc=null;
+    setStatus("Offline",false);
+  }
+
   function makePeer(){
-    closePeer(false);
+    closeConn();
     pc = new RTCPeerConnection({
       iceServers:[
         {urls:"stun:stun.l.google.com:19302"},
         {urls:"stun:stun1.l.google.com:19302"}
       ]
     });
+
     pc.onconnectionstatechange = () => {
       const s = pc.connectionState;
-      if(s === "connected") setConnected(true, "Conectat");
-      else if(s === "failed" || s === "disconnected" || s === "closed") setConnected(false, s);
-      else ui.connText.textContent = s;
+      if(s === "connected"){
+        setStatus("Conectat",true);
+        hideMenu();
+        toast("Conectat!");
+        vibe([45,35,45]);
+      }else if(["failed","disconnected","closed"].includes(s)){
+        setStatus("Deconectat",false);
+      }else{
+        setStatus(s,false);
+      }
     };
-    pc.oniceconnectionstatechange = () => {
-      if(pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") setConnected(true, "Conectat");
-    };
-    pc.ondatachannel = (ev) => {
+
+    pc.ondatachannel = ev => {
       dc = ev.channel;
-      setupChannel();
+      setupDC();
     };
     return pc;
   }
 
-  function setupChannel(){
+  function setupDC(){
     if(!dc) return;
-    dc.binaryType = "arraybuffer";
     dc.onopen = () => {
-      setConnected(true, "Conectat");
-      send({t:"hello", mode:config.mode});
+      setStatus("Conectat",true);
+      send({t:"hello"});
       hideMenu();
+      toast("Conectat! Apasă Start.");
+      vibe([45,35,45]);
     };
-    dc.onclose = () => setConnected(false, "Offline");
-    dc.onerror = () => toast("Eroare DataChannel.");
-    dc.onmessage = (ev) => {
-      let msg;
-      try{ msg = JSON.parse(ev.data); }catch(e){ return; }
-      handleNet(msg);
+    dc.onclose = () => setStatus("Offline",false);
+    dc.onmessage = ev => {
+      let m;
+      try{ m = JSON.parse(ev.data); }catch(e){ return; }
+      onMsg(m);
     };
   }
 
-  function send(msg){
+  function send(m){
     if(dc && dc.readyState === "open"){
-      try{ dc.send(JSON.stringify(msg)); }catch(e){}
+      try{ dc.send(JSON.stringify(m)); }catch(e){}
     }
   }
 
   async function host(){
-    state.isHost = true;
-    state.solo = false;
-    setConnected(false, "Host...");
-    const peer = makePeer();
-    dc = peer.createDataChannel("game", {ordered:false, maxRetransmits:0});
-    setupChannel();
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
-    await waitIceComplete(peer);
-    ui.offerOut.value = safeB64Encode(peer.localDescription);
-    toast("Host code creat. Copiază-l pe al doilea telefon.");
-  }
-
-  async function createAnswer(){
     try{
-      state.isHost = false;
-      state.solo = false;
-      setConnected(false, "Join...");
-      const offer = safeB64Decode(ui.offerIn.value);
-      const peer = makePeer();
-      await peer.setRemoteDescription(offer);
-      const answer = await peer.createAnswer();
-      await peer.setLocalDescription(answer);
-      await waitIceComplete(peer);
-      ui.answerOut.value = safeB64Encode(peer.localDescription);
-      toast("Answer creat. Copiază-l pe telefonul Host.");
+      game.isHost = true;
+      game.solo = false;
+      setStatus("Creez Host...",false);
+      const p = makePeer();
+      dc = p.createDataChannel("duel", {ordered:false, maxRetransmits:0});
+      setupDC();
+      const offer = await p.createOffer();
+      await p.setLocalDescription(offer);
+      await waitIce(p);
+      const code = pack({type:"offer", sdp:p.localDescription});
+      makeQR(code, "Host QR: arată-l telefonului Join");
+      toast("Host QR creat.");
     }catch(e){
       console.error(e);
-      toast("Cod Host invalid sau conexiunea nu poate fi creată.");
+      toast("Nu pot crea Host. Încearcă Chrome/Edge.");
     }
   }
 
-  async function acceptAnswer(){
+  async function handleCode(code){
+    let data;
+    try{ data = unpack(code); }catch(e){ toast("Cod QR invalid."); return; }
+
+    if(data.type === "offer"){
+      await joinOffer(data.sdp);
+    }else if(data.type === "answer"){
+      await acceptAnswer(data.sdp);
+    }else{
+      toast("Cod necunoscut.");
+    }
+  }
+
+  async function joinOffer(offer){
     try{
-      if(!pc) return toast("Apasă Host întâi.");
-      const answer = safeB64Decode(ui.answerIn.value);
+      game.isHost = false;
+      game.solo = false;
+      setStatus("Creez Answer...",false);
+      const p = makePeer();
+      await p.setRemoteDescription(offer);
+      const ans = await p.createAnswer();
+      await p.setLocalDescription(ans);
+      await waitIce(p);
+      const code = pack({type:"answer", sdp:p.localDescription});
+      makeQR(code, "Answer QR: arată-l telefonului Host");
+      toast("Answer QR creat. Host trebuie să îl scaneze.");
+      vibe(35);
+    }catch(e){
+      console.error(e);
+      toast("Nu pot folosi Host QR. Încearcă din nou.");
+    }
+  }
+
+  async function acceptAnswer(answer){
+    try{
+      if(!pc) return toast("Pe Host trebuie întâi creat Host QR.");
       await pc.setRemoteDescription(answer);
-      toast("Answer acceptat. Așteaptă conectarea.");
+      toast("Answer acceptat. Se conectează...");
     }catch(e){
       console.error(e);
       toast("Answer invalid.");
     }
   }
 
-  function closePeer(show=true){
-    try{ if(dc) dc.close(); }catch(e){}
-    try{ if(pc) pc.close(); }catch(e){}
-    dc = null; pc = null;
-    setConnected(false, "Offline");
-    if(show) toast("Conexiune resetată.");
-  }
-
-  function handleNet(m){
-    if(m.t === "hello"){
-      if(m.mode && m.mode !== config.mode) toast("Adversarul e pe modul " + m.mode.toUpperCase() + ".");
-      send({t:"helloBack", mode:config.mode});
-    }else if(m.t === "state"){
-      state.op.x = clamp(m.x,0,1);
-      state.op.hp = clamp(m.hp,0,config.maxHp);
-      state.op.score = m.score || 0;
-      state.op.lastSeen = performance.now();
-      updateUI();
-    }else if(m.t === "bullet"){
-      spawnIncoming(m.x, m.power || 1, m.kind || "normal");
-    }else if(m.t === "ball"){
-      if(config.mode === "deflect") receiveBall(m);
-    }else if(m.t === "hit"){
-      state.op.hp = m.hp;
-      updateUI();
-    }else if(m.t === "score"){
-      state.op.score = m.score || state.op.score;
-      updateUI();
-    }else if(m.t === "start"){
-      startRound(false);
-    }else if(m.t === "mode"){
-      config.mode = m.mode;
-      selectMode(config.mode, false);
-    }else if(m.t === "ping"){
-      send({t:"pong", n:m.n});
-    }else if(m.t === "pong"){
-      state.ping = Math.round(performance.now() - m.n);
-    }else if(m.t === "enemy"){
-      if(config.mode === "defend") spawnIncomingEnemy(m.x, m.hp || 24, true);
-    }
-  }
-
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-  function lerp(a,b,t){ return a + (b-a)*t; }
-
-  function resetRound(){
-    state.my.x = .5;
-    state.my.vx = 0;
-    state.my.hp = config.maxHp;
-    state.my.cooldown = 0;
-    state.my.dash = 0;
-    state.my.inv = 1.1;
-    state.op.hp = config.maxHp;
-    state.bullets.length = 0;
-    state.incoming.length = 0;
-    state.particles.length = 0;
-    state.enemies.length = 0;
-    state.waveTimer = 1.2;
-    state.ball = config.mode === "deflect" ? {x:.5,y:.5,vx:(Math.random()<.5?-1:1)*180,vy:-420,r:16,owner:"local"} : null;
-    state.roundText = config.mode.toUpperCase();
-    state.roundSub = "Trage prin marginea de sus. Evită ce vine de pe telefonul celălalt.";
-    updateUI();
-  }
-
   function startRound(sendNet=true){
-    resetRound();
-    state.running = true;
-    state.paused = false;
-    ui.centerMsg.style.display = "none";
+    game.running = true;
+    game.my.hp = 100;
+    game.enemy.hp = 100;
+    game.my.x = .5;
+    game.bullets.length=0;
+    game.incoming.length=0;
+    game.particles.length=0;
+    game.my.inv = 1;
+    updateHud();
+    updateCenter("", "", false);
     hideMenu();
     if(sendNet) send({t:"start"});
-    toast("Runda a început!");
-    vibrate(50);
+    toast("Start!");
+    vibe(40);
   }
 
-  function pauseToggle(){
-    state.paused = !state.paused;
-    ui.centerMsg.style.display = state.paused ? "block" : "none";
-    state.roundText = state.paused ? "PAUZĂ" : "";
-    state.roundSub = "Apasă Pauză sau Start rundă.";
-  }
-
-  function soloMode(){
-    state.solo = true;
-    setConnected(false, "Solo test");
-    config.mode = "solo";
-    selectMode("solo", false);
-    startRound(false);
-  }
-
-  function selectMode(mode, notify=true){
-    config.mode = mode;
-    [...ui.modeTabs.querySelectorAll("button")].forEach(b=>{
-      const s = b.dataset.mode === mode;
-      b.classList.toggle("selected", s);
-      b.classList.toggle("secondary", !s);
-    });
-    if(notify) send({t:"mode", mode});
-    if(!state.running){
-      state.roundText = mode.toUpperCase();
-      state.roundSub = mode === "deflect" ? "Lovește bila ca să treacă pe ecranul adversarului." :
-                       mode === "defend" ? "Apărați zona de valuri de inamici." :
-                       mode === "solo" ? "Test local fără al doilea telefon." :
-                       "Duel 1v1 cu proiectile între telefoane.";
+  function onMsg(m){
+    if(m.t === "hello"){
+      send({t:"state", x:game.my.x, hp:game.my.hp, score:game.my.score});
+    }else if(m.t === "start"){
+      startRound(false);
+    }else if(m.t === "state"){
+      game.enemy.x = clamp(m.x ?? .5,0,1);
+      game.enemy.hp = clamp(m.hp ?? 100,0,100);
+      game.enemy.score = m.score ?? game.enemy.score;
+      updateHud();
+    }else if(m.t === "shot"){
+      game.incoming.push({x:clamp(m.x,0,1)*W,y:-15,vy:620,r:8,id:m.id});
+      spark(clamp(m.x,0,1)*W,12,10,"#ff3b6b");
+    }else if(m.t === "died"){
+      game.my.score++;
+      updateHud();
+      toast("Ai marcat!");
+      vibe([50,30,80]);
     }
-    toast("Mod: " + mode.toUpperCase());
   }
 
-  function updateUI(){
-    ui.myScore.textContent = state.my.score;
-    ui.opScore.textContent = state.op.score;
-    ui.myHp.style.width = clamp(state.my.hp / config.maxHp * 100,0,100) + "%";
-    ui.opHp.style.width = clamp(state.op.hp / config.maxHp * 100,0,100) + "%";
-    const big = ui.centerMsg.querySelector(".big");
-    const sub = ui.centerMsg.querySelector(".sub");
-    big.textContent = state.roundText || "PHONE DUEL";
-    sub.textContent = state.roundSub || "";
+  function shoot(){
+    if(!game.running || game.my.cool>0) return;
+    game.my.cool=.28;
+    const b={x:game.my.x*W,y:H*game.my.y-24,vy:-700,r:6,id:++game.lastShotId};
+    game.bullets.push(b);
+    spark(b.x,b.y,8,"#00d9ff");
+    vibe(15);
   }
 
-  function showMenu(){ ui.drawer.classList.remove("hidden"); }
-  function hideMenu(){ ui.drawer.classList.add("hidden"); }
-
-  function spawnBullet(power=1, kind="normal"){
-    if(state.my.cooldown > 0) return;
-    state.my.cooldown = config.fireCooldown * (kind === "charge" ? 1.4 : 1);
-    const x = state.my.x * W;
-    const y = H * state.my.y - 25;
-    const sp = config.bulletSpeed * (kind === "charge" ? .92 : 1);
-    const size = kind === "charge" ? 8 + power*6 : 6;
-    state.bullets.push({x,y,vx:0,vy:-sp,r:size,power,kind,life:2});
-    addParticles(x,y,10,config.playerColor);
-    vibrate(15);
+  function hit(){
+    if(game.my.inv>0) return;
+    game.my.hp -= 20;
+    game.my.inv = .5;
+    game.shake = 11;
+    spark(game.my.x*W,H*game.my.y,24,"#ff3b6b");
+    vibe([35,25,35]);
+    if(game.my.hp <= 0){
+      game.my.hp = 0;
+      game.enemy.score++;
+      send({t:"died"});
+      updateHud();
+      game.running=false;
+      updateCenter("AI PIERDUT", "Apasă Start rundă pentru revanșă.", true);
+    }
   }
 
-  function spawnIncoming(xNorm, power=1, kind="normal"){
-    const x = clamp(xNorm,0,1) * W;
-    const size = kind === "charge" ? 13 : 8;
-    state.incoming.push({x,y:-18,vx:0,vy:config.incomingSpeed,r:size,power,kind,life:3});
-    addParticles(x,6,8,config.enemyColor);
-  }
-
-  function addParticles(x,y,n,color){
+  function spark(x,y,n,c){
     for(let i=0;i<n;i++){
-      const a = Math.random()*Math.PI*2;
-      const s = Math.random()*180+40;
-      state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:Math.random()*3+1,life:Math.random()*0.5+0.25,color});
+      const a=Math.random()*Math.PI*2, s=Math.random()*230+40;
+      game.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:Math.random()*3+1,life:Math.random()*.45+.25,c});
     }
   }
 
-  function hitPlayer(dmg){
-    if(state.my.inv > 0) return;
-    state.my.hp -= dmg;
-    state.my.inv = .35;
-    state.shake = 10;
-    vibrate([30,20,30]);
-    addParticles(state.my.x*W,H*state.my.y,22,config.danger);
-    send({t:"hit", hp:state.my.hp});
-    if(state.my.hp <= 0){
-      state.my.hp = 0;
-      state.op.score++;
-      send({t:"score", score:state.my.score});
-      gameOver(false);
+  function update(dt,now){
+    for(const s of game.stars){
+      s.y += dt*(.025+s.s*.012);
+      if(s.y>1){s.y=0;s.x=Math.random();}
     }
-    updateUI();
-  }
+    if(!game.running) return;
 
-  function gameOver(won){
-    state.running = false;
-    ui.centerMsg.style.display = "block";
-    state.roundText = won ? "AI CÂȘTIGAT!" : "AI PIERDUT!";
-    state.roundSub = "Apasă Start rundă pentru revanșă.";
-    updateUI();
-    vibrate(won ? [70,40,70,40,120] : 160);
-  }
+    game.my.cool=Math.max(0,game.my.cool-dt);
+    game.my.inv=Math.max(0,game.my.inv-dt);
 
-  function dash(){
-    if(state.my.dash > 0) return;
-    const dir = state.keys.left && !state.keys.right ? -1 : state.keys.right && !state.keys.left ? 1 : (state.my.vx >= 0 ? 1 : -1);
-    state.my.x = clamp(state.my.x + dir * .20, .06, .94);
-    state.my.dash = config.dashCooldown;
-    state.my.inv = .18;
-    addParticles(state.my.x*W, H*state.my.y, 20, config.accent2);
-    vibrate(20);
-  }
+    let dir=0;
+    if(game.keys.left) dir-=1;
+    if(game.keys.right) dir+=1;
+    game.my.x=clamp(game.my.x + dir*dt*1.35, .06,.94);
 
-  function sendNetState(now){
-    if(!state.connected && !state.solo) return;
-    if(now - state.lastNetSend > 50){
-      send({t:"state", x:state.my.x, hp:state.my.hp, score:state.my.score});
-      state.lastNetSend = now;
-    }
-    if(now - state.lastPingSent > 1200){
-      send({t:"ping", n:now});
-      state.lastPingSent = now;
-    }
-  }
-
-  function update(dt, now){
-    state.fpsFrames++;
-    state.fpsTime += dt;
-    if(state.fpsTime >= .5){
-      state.fps = Math.round(state.fpsFrames / state.fpsTime);
-      state.fpsFrames = 0; state.fpsTime = 0;
-      ui.debug.textContent = "FPS: " + state.fps + " | Ping: " + (state.ping || "--") + " ms";
-    }
-
-    for(const s of state.stars){
-      s.y += dt * (0.03 + s.s*0.012);
-      if(s.y > 1){ s.y = 0; s.x = Math.random(); }
-    }
-
-    if(!state.running || state.paused) return;
-
-    const speed = 1.65;
-    let move = 0;
-    if(state.keys.left) move -= 1;
-    if(state.keys.right) move += 1;
-    if(state.pointer !== null){
-      const target = state.pointer / W;
-      state.my.x = lerp(state.my.x, clamp(target,.04,.96), clamp(dt*8,0,1));
-    }else if(config.control === "tilt" && config.tiltEnabled){
-      move += clamp((tiltGamma - config.tiltZero) / 18, -1, 1);
-    }
-    if(config.flipped) move *= -1;
-    state.my.vx = lerp(state.my.vx, move * speed, clamp(dt*12,0,1));
-    state.my.x = clamp(state.my.x + state.my.vx * dt, .05, .95);
-
-    state.my.cooldown = Math.max(0, state.my.cooldown - dt);
-    state.my.dash = Math.max(0, state.my.dash - dt);
-    state.my.inv = Math.max(0, state.my.inv - dt);
-    if(state.keys.fire) state.my.charge = Math.min(1.5, state.my.charge + dt); else state.my.charge = 0;
-
-    for(let i=state.bullets.length-1;i>=0;i--){
-      const b = state.bullets[i];
-      b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
-      if(b.y < -b.r){
-        const xNorm = clamp(b.x / W,0,1);
-        if(state.solo){
-          spawnIncoming(1-xNorm, b.power, b.kind);
+    for(let i=game.bullets.length-1;i>=0;i--){
+      const b=game.bullets[i];
+      b.y += b.vy*dt;
+      if(b.y < -20){
+        const xn=clamp(b.x/W,0,1);
+        if(game.solo){
+          game.incoming.push({x:(1-xn)*W,y:-15,vy:620,r:8,id:b.id});
         }else{
-          send({t:"bullet", x:xNorm, power:b.power, kind:b.kind});
+          send({t:"shot", x:xn, id:b.id});
         }
-        state.bullets.splice(i,1);
-      }else if(b.life <= 0){
-        state.bullets.splice(i,1);
+        game.bullets.splice(i,1);
       }
     }
 
-    for(let i=state.incoming.length-1;i>=0;i--){
-      const b = state.incoming[i];
-      b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
-      const dx = b.x - state.my.x*W;
-      const dy = b.y - H*state.my.y;
-      if(Math.hypot(dx,dy) < b.r + state.my.radius){
-        hitPlayer(b.kind === "charge" ? 22 : 12);
-        state.incoming.splice(i,1);
-      }else if(b.y > H + 60 || b.life <= 0){
-        state.incoming.splice(i,1);
+    for(let i=game.incoming.length-1;i>=0;i--){
+      const b=game.incoming[i];
+      b.y += b.vy*dt;
+      const dx=b.x-game.my.x*W, dy=b.y-H*game.my.y;
+      if(Math.hypot(dx,dy) < b.r+20){
+        hit();
+        game.incoming.splice(i,1);
+      }else if(b.y>H+30){
+        game.incoming.splice(i,1);
       }
     }
 
-    if(state.solo && config.mode !== "deflect"){
-      soloAI(dt);
+    if(game.solo && Math.random()<dt*.7){
+      game.incoming.push({x:Math.random()*W,y:-15,vy:520+Math.random()*140,r:8,id:Math.random()});
     }
 
-    if(config.mode === "deflect"){
-      updateDeflect(dt);
-    }
-    if(config.mode === "defend"){
-      updateDefend(dt);
-    }
-
-    for(let i=state.particles.length-1;i>=0;i--){
-      const p = state.particles[i];
-      p.x += p.vx*dt; p.y += p.vy*dt;
-      p.vx *= Math.pow(.05,dt); p.vy *= Math.pow(.05,dt);
-      p.life -= dt; p.r *= Math.pow(.4,dt);
-      if(p.life <= 0 || p.r < .2) state.particles.splice(i,1);
+    for(let i=game.particles.length-1;i>=0;i--){
+      const p=game.particles[i];
+      p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; p.r*=Math.pow(.2,dt);
+      p.vx*=Math.pow(.04,dt); p.vy*=Math.pow(.04,dt);
+      if(p.life<=0||p.r<.2) game.particles.splice(i,1);
     }
 
-    state.shake = Math.max(0, state.shake - dt*30);
-    sendNetState(now);
-    updateUI();
-  }
-
-  function soloAI(dt){
-    const target = state.my.x < .5 ? .72 : .28;
-    if(Math.random() < dt * 1.4) spawnIncoming(target + (Math.random()-.5)*.12, 1, Math.random()<.2 ? "charge" : "normal");
-  }
-
-  function updateDeflect(dt){
-    if(!state.ball) return;
-    const ball = state.ball;
-    ball.x += ball.vx * dt / W;
-    ball.y += ball.vy * dt / H;
-    if(ball.x < .05){ ball.x=.05; ball.vx=Math.abs(ball.vx); }
-    if(ball.x > .95){ ball.x=.95; ball.vx=-Math.abs(ball.vx); }
-    const px = state.my.x, py = state.my.y;
-    const dx = (ball.x-px)*W, dy=(ball.y-py)*H;
-    if(Math.hypot(dx,dy) < ball.r + state.my.radius){
-      ball.vy = -Math.abs(ball.vy) - 60;
-      ball.vx += state.my.vx * 180;
-      ball.owner = "local";
-      addParticles(ball.x*W,ball.y*H,18,config.accent2);
-      vibrate(20);
+    if(now-game.netSend>70){
+      send({t:"state", x:game.my.x, hp:game.my.hp, score:game.my.score});
+      game.netSend=now;
     }
-    if(ball.y < -0.04){
-      if(state.solo){
-        ball.y = 0.02; ball.vy = Math.abs(ball.vy);
-      }else{
-        send({t:"ball", x:ball.x, vx:ball.vx, vy:ball.vy, owner:"remote"});
-        state.ball = null;
-      }
-    }else if(ball.y > 1.08){
-      state.op.score++;
-      gameOver(false);
-    }
-  }
 
-  function receiveBall(m){
-    state.ball = {x:clamp(m.x,0,1), y:-.02, vx:m.vx || 0, vy:Math.abs(m.vy || 460), r:16, owner:"remote"};
-  }
-
-  function updateDefend(dt){
-    state.waveTimer -= dt;
-    if(state.waveTimer <= 0){
-      state.waveTimer = Math.max(.35, 1.4 - state.my.score*.02);
-      if(state.solo || Math.random() < .5) spawnIncomingEnemy(Math.random(), 22 + Math.random()*16, false);
-      if(state.connected && Math.random() < .32) send({t:"enemy", x:Math.random(), hp:24});
-    }
-    for(let i=state.enemies.length-1;i>=0;i--){
-      const e = state.enemies[i];
-      e.y += e.vy*dt;
-      for(let j=state.bullets.length-1;j>=0;j--){
-        const b = state.bullets[j];
-        if(Math.hypot(b.x-e.x, b.y-e.y) < b.r + e.r){
-          e.hp -= 18*b.power;
-          state.bullets.splice(j,1);
-          addParticles(e.x,e.y,8,config.warn);
-          if(e.hp <= 0){
-            state.my.score++;
-            addParticles(e.x,e.y,22,config.good);
-            state.enemies.splice(i,1);
-          }
-          break;
-        }
-      }
-      if(i < state.enemies.length && e.y > H*state.my.y){
-        hitPlayer(14);
-        state.enemies.splice(i,1);
-      }
-    }
-  }
-
-  function spawnIncomingEnemy(xNorm, hp, fromNet){
-    state.enemies.push({x:clamp(xNorm,0,1)*W,y:-20,vy:100+Math.random()*80,r:16,hp,fromNet});
+    game.shake=Math.max(0,game.shake-dt*35);
+    updateHud();
   }
 
   function draw(){
     ctx.save();
-    const sx = state.shake ? (Math.random()-.5)*state.shake : 0;
-    const sy = state.shake ? (Math.random()-.5)*state.shake : 0;
-    ctx.translate(sx,sy);
-
-    const grd = ctx.createLinearGradient(0,0,0,H);
-    grd.addColorStop(0,"#080b1b");
-    grd.addColorStop(.55,"#050816");
-    grd.addColorStop(1,"#090b1f");
-    ctx.fillStyle = grd;
-    ctx.fillRect(-20,-20,W+40,H+40);
-
-    for(const s of state.stars){
-      ctx.globalAlpha = s.a;
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(s.x*W,s.y*H,s.s,0,Math.PI*2);
-      ctx.fill();
+    if(game.shake){
+      ctx.translate((Math.random()-.5)*game.shake,(Math.random()-.5)*game.shake);
     }
-    ctx.globalAlpha = 1;
 
-    drawArenaLine();
-    if(config.mode === "deflect" && state.ball) drawBall(state.ball);
-    if(config.mode === "defend") for(const e of state.enemies) drawEnemy(e);
-    for(const b of state.bullets) drawBullet(b, config.playerColor);
-    for(const b of state.incoming) drawBullet(b, config.enemyColor, true);
-    drawOpponentGhost();
-    drawShip(state.my.x*W,H*state.my.y,config.playerColor,true);
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,"#090d22");
+    g.addColorStop(.65,"#050713");
+    g.addColorStop(1,"#090b1e");
+    ctx.fillStyle=g; ctx.fillRect(-20,-20,W+40,H+40);
 
-    for(const p of state.particles){
-      ctx.globalAlpha = clamp(p.life*2,0,1);
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fill();
+    for(const s of game.stars){
+      ctx.globalAlpha=s.a; ctx.fillStyle="#fff";
+      ctx.beginPath(); ctx.arc(s.x*W,s.y*H,s.s,0,Math.PI*2); ctx.fill();
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
 
+    ctx.strokeStyle="rgba(255,255,255,.16)";
+    ctx.lineWidth=2; ctx.setLineDash([10,10]);
+    ctx.beginPath(); ctx.moveTo(18,56); ctx.lineTo(W-18,56); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="rgba(255,255,255,.5)";
+    ctx.font="800 11px system-ui"; ctx.textAlign="center";
+    ctx.fillText("MARGINE SPRE CELĂLALT TELEFON",W/2,38);
+
+    drawEnemyGhost();
+
+    for(const b of game.bullets) drawBullet(b.x,b.y,b.r,"#00d9ff");
+    for(const b of game.incoming) drawBullet(b.x,b.y,b.r,"#ff3b6b");
+
+    drawShip(game.my.x*W,H*game.my.y,"#00d9ff",game.my.inv);
+
+    for(const p of game.particles){
+      ctx.globalAlpha=clamp(p.life*2,0,1);
+      ctx.fillStyle=p.c; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
     ctx.restore();
   }
 
-  function drawArenaLine(){
+  function drawShip(x,y,color,inv){
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,.14)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10,12]);
-    ctx.beginPath();
-    ctx.moveTo(20, 54);
-    ctx.lineTo(W-20, 54);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = "rgba(255,255,255,.45)";
-    ctx.font = "700 11px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText("MARGINE CĂTRE CELĂLALT TELEFON", W/2, 36);
-    ctx.restore();
-  }
-
-  function drawShip(x,y,color,local){
-    ctx.save();
-    const invBlink = local && state.my.inv > 0 && Math.floor(performance.now()/80)%2===0;
-    if(invBlink) ctx.globalAlpha = .45;
+    if(inv>0 && Math.floor(performance.now()/90)%2===0) ctx.globalAlpha=.45;
     ctx.translate(x,y);
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 18;
-    ctx.fillStyle = color;
+    ctx.shadowColor=color; ctx.shadowBlur=18;
+    ctx.fillStyle=color;
     ctx.beginPath();
-    ctx.moveTo(0,-24);
-    ctx.lineTo(19,20);
-    ctx.lineTo(0,11);
-    ctx.lineTo(-19,20);
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(255,255,255,.9)";
-    ctx.beginPath();
-    ctx.arc(0,0,5,0,Math.PI*2);
-    ctx.fill();
-    const dashReady = state.my.dash <= 0;
-    ctx.strokeStyle = dashReady ? "rgba(0,224,255,.55)" : "rgba(255,255,255,.15)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0,0,32,-Math.PI/2,-Math.PI/2 + Math.PI*2*(1-state.my.dash/config.dashCooldown));
-    ctx.stroke();
+    ctx.moveTo(0,-25); ctx.lineTo(20,21); ctx.lineTo(0,12); ctx.lineTo(-20,21); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle="rgba(255,255,255,.92)";
+    ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
-  function drawOpponentGhost(){
-    if(!state.connected && !state.solo) return;
-    const x = state.solo ? (1-state.my.x)*W : state.op.x*W;
-    ctx.save();
-    ctx.globalAlpha = .24;
-    ctx.translate(x, 83);
-    ctx.rotate(Math.PI);
-    ctx.fillStyle = config.enemyColor;
-    ctx.beginPath();
-    ctx.moveTo(0,-20);
-    ctx.lineTo(16,18);
-    ctx.lineTo(0,10);
-    ctx.lineTo(-16,18);
-    ctx.closePath();
-    ctx.fill();
+  function drawEnemyGhost(){
+    if(!game.connected && !game.solo) return;
+    const x = (game.solo ? (1-game.my.x) : game.enemy.x)*W;
+    ctx.save(); ctx.globalAlpha=.28; ctx.translate(x,85); ctx.rotate(Math.PI);
+    ctx.fillStyle="#ff3b6b";
+    ctx.beginPath(); ctx.moveTo(0,-23); ctx.lineTo(18,18); ctx.lineTo(0,10); ctx.lineTo(-18,18); ctx.closePath(); ctx.fill();
     ctx.restore();
   }
 
-  function drawBullet(b,color,incoming=false){
+  function drawBullet(x,y,r,c){
     ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 16;
-    const g = ctx.createRadialGradient(b.x,b.y,1,b.x,b.y,b.r*2.4);
-    g.addColorStop(0,"#fff");
-    g.addColorStop(.25,color);
-    g.addColorStop(1,"rgba(255,255,255,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(b.x,b.y,b.r*2.2,0,Math.PI*2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawBall(ball){
-    const x = ball.x*W, y = ball.y*H;
-    ctx.save();
-    ctx.shadowColor = "#ffd166";
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = "#ffd166";
-    ctx.beginPath();
-    ctx.arc(x,y,ball.r,0,Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,.7)";
-    ctx.beginPath();
-    ctx.arc(x-5,y-5,5,0,Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawEnemy(e){
-    ctx.save();
-    ctx.translate(e.x,e.y);
-    ctx.shadowColor = config.danger;
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = config.danger;
-    ctx.beginPath();
-    for(let i=0;i<6;i++){
-      const a = i/6*Math.PI*2;
-      const r = i%2 ? e.r*.6 : e.r;
-      ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(255,255,255,.8)";
-    ctx.fillRect(-10,-e.r-8,20,3);
-    ctx.fillStyle = config.good;
-    ctx.fillRect(-10,-e.r-8,20*clamp(e.hp/40,0,1),3);
+    ctx.shadowColor=c; ctx.shadowBlur=16;
+    ctx.fillStyle=c;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.75)";
+    ctx.beginPath(); ctx.arc(x-2,y-2,r*.35,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
   function loop(now){
-    const dt = Math.min(.033, (now - state.last) / 1000 || .016);
-    state.last = now;
-    update(dt, now);
+    const dt=Math.min(.033,(now-game.last)/1000||.016);
+    game.last=now;
+    update(dt,now);
     draw();
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
 
-  // Inputs
-  function bindHold(el, key){
-    const down = (e)=>{ e.preventDefault(); state.keys[key]=true; el.classList.add("active"); if(key==="dash") dash(); };
-    const up = (e)=>{ e.preventDefault(); state.keys[key]=false; el.classList.remove("active"); };
-    el.addEventListener("pointerdown", down);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
-    el.addEventListener("contextmenu", e=>e.preventDefault());
-  }
-  bindHold(ui.leftBtn,"left");
-  bindHold(ui.rightBtn,"right");
-  bindHold(ui.fireBtn,"fire");
-  bindHold(ui.dashBtn,"dash");
-
-  ui.fireBtn.addEventListener("pointerup", () => {
-    const p = Math.max(1, state.my.charge || 1);
-    spawnBullet(p, p > .55 ? "charge" : "normal");
-    state.my.charge = 0;
-  });
-
-  canvas.addEventListener("pointerdown",(e)=>{
-    if(e.target !== canvas) return;
-    state.pointer = e.clientX;
-  });
-  canvas.addEventListener("pointermove",(e)=>{
-    if(state.pointer !== null) state.pointer = e.clientX;
-  });
-  window.addEventListener("pointerup",()=>{ state.pointer = null; });
-
-  window.addEventListener("keydown",(e)=>{
-    if(e.key==="ArrowLeft" || e.key==="a") state.keys.left = true;
-    if(e.key==="ArrowRight" || e.key==="d") state.keys.right = true;
-    if(e.key===" "){ state.keys.fire=true; spawnBullet(1,"normal"); }
-    if(e.key==="Shift") dash();
-  });
-  window.addEventListener("keyup",(e)=>{
-    if(e.key==="ArrowLeft" || e.key==="a") state.keys.left = false;
-    if(e.key==="ArrowRight" || e.key==="d") state.keys.right = false;
-    if(e.key===" ") state.keys.fire=false;
-  });
-
-  let tiltGamma = 0;
-  window.addEventListener("deviceorientation",(e)=>{
-    if(typeof e.gamma === "number") tiltGamma = e.gamma;
-  }, true);
-
-  async function enableTilt(){
+  async function startScan(){
     try{
-      if(typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function"){
-        const res = await DeviceOrientationEvent.requestPermission();
-        if(res !== "granted") return toast("Permisiune tilt refuzată.");
-      }
-      config.tiltEnabled = true;
-      config.control = "tilt";
-      ui.controlMode.value = "tilt";
-      toast("Tilt activat.");
+      stopScan();
+      scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
+      el.cam.srcObject = scanStream;
+      await el.cam.play();
+      el.scanHint.classList.add("hidden");
+      scanLoop();
+      toast("Camera pornită. Scanează QR-ul.");
     }catch(e){
-      toast("Tilt indisponibil pe acest browser.");
+      console.error(e);
+      toast("Camera nu pornește. Folosește copy/paste sau HTTPS.");
     }
   }
 
-  // UI events
-  ui.menuBtn.onclick = showMenu;
-  ui.hideMenuBtn.onclick = hideMenu;
-  ui.hostBtn.onclick = host;
-  ui.joinBtn.onclick = () => { ui.offerIn.focus(); toast("Lipește Host code în zona Join."); };
-  ui.resetNetBtn.onclick = () => closePeer(true);
-  ui.createAnswerBtn.onclick = createAnswer;
-  ui.acceptAnswerBtn.onclick = acceptAnswer;
-  ui.copyOfferBtn.onclick = () => copyText(ui.offerOut.value);
-  ui.copyAnswerBtn.onclick = () => copyText(ui.answerOut.value);
-  ui.startBtn.onclick = () => startRound(true);
-  ui.pauseBtn.onclick = pauseToggle;
-  ui.soloBtn.onclick = soloMode;
-  ui.enableTiltBtn.onclick = enableTilt;
-  ui.calibrateBtn.onclick = () => { config.tiltZero = tiltGamma; toast("Calibrat."); };
-  ui.controlMode.onchange = () => { config.control = ui.controlMode.value; if(config.control === "tilt") enableTilt(); };
-  ui.flipBtn.onclick = () => { config.flipped = !config.flipped; toast(config.flipped ? "Control inversat." : "Control normal."); };
+  async function scanLoop(){
+    if(!scanStream) return;
+    const v=el.cam, c=el.scanCanvas, s=c.getContext("2d",{willReadFrequently:true});
+    if(v.readyState >= 2){
+      c.width = v.videoWidth || 640;
+      c.height = v.videoHeight || 480;
+      s.drawImage(v,0,0,c.width,c.height);
 
-  ui.modeTabs.addEventListener("click",(e)=>{
-    const btn = e.target.closest("button[data-mode]");
-    if(btn) selectMode(btn.dataset.mode, true);
-  });
+      let code=null;
 
-  document.addEventListener("visibilitychange",()=>{
-    if(document.hidden) state.paused = true;
-  });
+      if("BarcodeDetector" in window){
+        try{
+          const detector = new BarcodeDetector({formats:["qr_code"]});
+          const found = await detector.detect(c);
+          if(found && found[0]) code = found[0].rawValue;
+        }catch(e){}
+      }
 
-  // Small helper: long press fire charges, quick tap fires normal.
-  setInterval(()=>{
-    if(state.keys.fire && state.running && state.my.cooldown <= 0 && state.my.charge > .65){
-      // Visual charge particles only; actual shot on release.
-      if(Math.random() < .25) addParticles(state.my.x*W,H*state.my.y-20,2,config.warn);
+      if(!code && window.jsQR){
+        try{
+          const img = s.getImageData(0,0,c.width,c.height);
+          const qr = jsQR(img.data,c.width,c.height);
+          if(qr && qr.data) code = qr.data;
+        }catch(e){}
+      }
+
+      if(code){
+        stopScan();
+        el.incomingCode.value = code;
+        toast("QR scanat.");
+        await handleCode(code);
+        return;
+      }
     }
-  },60);
+    scanTimer = requestAnimationFrame(scanLoop);
+  }
 
-  // Welcome
-  updateUI();
-  setConnected(false, "Offline");
-  toast("Deschide meniul pentru Host / Join.");
+  function stopScan(){
+    if(scanTimer) cancelAnimationFrame(scanTimer);
+    scanTimer=null;
+    if(scanStream){
+      scanStream.getTracks().forEach(t=>t.stop());
+      scanStream=null;
+    }
+    el.cam.srcObject=null;
+    el.scanHint.classList.remove("hidden");
+  }
+
+  function bindHold(btn,key){
+    const down=e=>{e.preventDefault();game.keys[key]=true;btn.classList.add("active")};
+    const up=e=>{e.preventDefault();game.keys[key]=false;btn.classList.remove("active")};
+    btn.addEventListener("pointerdown",down);
+    window.addEventListener("pointerup",up);
+    window.addEventListener("pointercancel",up);
+  }
+  bindHold(el.left,"left");
+  bindHold(el.right,"right");
+  el.fire.addEventListener("pointerdown",e=>{e.preventDefault();el.fire.classList.add("active");shoot();});
+  window.addEventListener("pointerup",()=>el.fire.classList.remove("active"));
+
+  window.addEventListener("keydown",e=>{
+    if(e.key==="ArrowLeft"||e.key==="a") game.keys.left=true;
+    if(e.key==="ArrowRight"||e.key==="d") game.keys.right=true;
+    if(e.key===" "||e.key==="Enter") shoot();
+  });
+  window.addEventListener("keyup",e=>{
+    if(e.key==="ArrowLeft"||e.key==="a") game.keys.left=false;
+    if(e.key==="ArrowRight"||e.key==="d") game.keys.right=false;
+  });
+
+  el.host.onclick=host;
+  el.scan.onclick=startScan;
+  el.stopScan.onclick=stopScan;
+  el.useCode.onclick=()=>handleCode(el.incomingCode.value);
+  el.copyOwn.onclick=async()=>{
+    try{ await navigator.clipboard.writeText(el.ownCode.value); toast("Cod copiat."); }
+    catch(e){ toast("Selectează manual codul."); }
+  };
+  el.paste.onclick=async()=>{
+    try{ el.incomingCode.value = await navigator.clipboard.readText(); toast("Cod lipit."); }
+    catch(e){ toast("Paste indisponibil. Lipește manual."); }
+  };
+  el.start.onclick=()=>startRound(true);
+  el.solo.onclick=()=>{ closeConn(); game.solo=true; setStatus("Solo test",false); startRound(false); };
+  el.reset.onclick=()=>{ closeConn(); location.reload(); };
+  el.openMenu.onclick=showMenu;
+  el.closeMenu.onclick=hideMenu;
+
+  updateHud();
+  setStatus("Offline",false);
 })();
 </script>
 </body>

@@ -1,554 +1,469 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ro">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>P2P Nexus Chat</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <style>
-        /* === CSS Variables & Theming === */
-        :root {
-            --bg-color: #0d1117;
-            --glass-bg: rgba(22, 27, 34, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --primary: #58a6ff;
-            --primary-hover: #1f6feb;
-            --danger: #ff4757;
-            --text-main: #c9d1d9;
-            --text-muted: #8b949e;
-            --msg-sent: #1f6feb;
-            --msg-recv: #21262d;
-        }
-
-        /* === Reset & Base Styles === */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-        /* === Glassmorphism Utilities === */
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-        }
-
-        /* === Lobby System UI === */
-        #lobby-screen {
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            height: 100%; padding: 20px; z-index: 10;
-        }
-        .lobby-card {
-            width: 100%; max-width: 400px; padding: 30px; border-radius: 16px;
-            display: flex; flex-direction: column; gap: 20px; text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.5s ease-out;
-        }
-        .lobby-card h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 10px; }
-        input[type="text"] {
-            width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--glass-border);
-            background: rgba(0,0,0,0.3); color: white; font-size: 1rem; outline: none; transition: border 0.3s;
-        }
-        input[type="text"]:focus { border-color: var(--primary); }
-        .btn {
-            padding: 12px; border-radius: 8px; border: none; font-size: 1rem; font-weight: bold;
-            cursor: pointer; transition: all 0.2s; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-primary { background: var(--primary); }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
-        .btn-secondary { background: var(--glass-bg); border: 1px solid var(--glass-border); }
-        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
-        .divider { display: flex; align-items: center; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--glass-border); margin: 0 10px; }
-
-        /* === Chat Interface UI === */
-        #chat-screen { display: none; flex-direction: column; height: 100%; animation: slideUp 0.4s ease-out; }
-        
-        .header {
-            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--glass-border); z-index: 5;
-        }
-        .header-info h2 { font-size: 1.2rem; letter-spacing: 1px; }
-        .header-info p { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
-        
-        .messages-container {
-            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;
-            scroll-behavior: smooth;
-        }
-
-        /* Chat Bubbles */
-        .message { max-width: 80%; padding: 10px 14px; border-radius: 12px; position: relative; word-wrap: break-word; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .message .sender { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block; }
-        .msg-sent { align-self: flex-end; background: var(--msg-sent); border-bottom-right-radius: 2px; }
-        .msg-sent .sender { display: none; }
-        .msg-recv { align-self: flex-start; background: var(--msg-recv); border-bottom-left-radius: 2px; border: 1px solid var(--glass-border); }
-        .msg-system { align-self: center; background: transparent; color: var(--text-muted); font-size: 0.8rem; font-style: italic; border: none; padding: 5px; animation: fadeIn 0.5s ease; }
-
-        /* Paranoid Mode Animations */
-        .paranoid-msg { overflow: hidden; border: 1px solid var(--danger); }
-        .paranoid-msg::after {
-            content: ''; position: absolute; bottom: 0; left: 0; height: 3px; background: var(--danger);
-            width: 100%; animation: burnTimer 10s linear forwards;
-        }
-
-        /* Input Area */
-        .input-area {
-            padding: 15px; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: flex-end;
-            background: var(--bg-color); z-index: 5;
-        }
-        textarea {
-            flex: 1; max-height: 120px; min-height: 44px; padding: 12px; border-radius: 20px;
-            border: 1px solid var(--glass-border); background: var(--glass-bg); color: white;
-            font-size: 1rem; resize: none; outline: none; overflow-y: auto; line-height: 1.4;
-        }
-        .icon-btn {
-            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%;
-            width: 44px; height: 44px; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; transition: 0.2s; color: var(--text-muted); flex-shrink: 0;
-        }
-        .icon-btn:hover { background: rgba(255,255,255,0.1); color: white; }
-        .icon-btn.active.flame { color: var(--danger); border-color: var(--danger); box-shadow: 0 0 10px rgba(255, 71, 87, 0.4); }
-        .icon-btn.active.mic { color: #2ed573; border-color: #2ed573; box-shadow: 0 0 10px rgba(46, 213, 115, 0.4); }
-        .send-btn { background: var(--primary); color: white; border: none; }
-        .send-btn:hover { background: var(--primary-hover); }
-
-        /* Typing Indicator */
-        #typing-indicator {
-            padding: 0 20px 10px; font-size: 0.8rem; color: var(--text-muted); font-style: italic;
-            min-height: 25px; opacity: 0; transition: opacity 0.3s;
-        }
-
-        /* SVG Icons Styling */
-        svg { width: 20px; height: 20px; fill: currentColor; }
-
-        /* Notifications & Errors */
-        #toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--danger);
-            color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; z-index: 100;
-            display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-
-        /* Animations */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes popIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
-        @keyframes burnTimer { from { width: 100%; } to { width: 0%; } }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar video realist</title>
+  <style>
+    :root {
+      --bg: #07090d;
+      --panel: #121821;
+      --panel2: #0d1219;
+      --text: #f3f7fb;
+      --muted: #93a0ae;
+      --good: #20d36b;
+      --bad: #ff2d2d;
+      --warn: #ffd23c;
+      --accent: #3191ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 0%, #182231 0%, var(--bg) 58%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header { text-align: center; padding: 16px 12px 8px; }
+    h1 { margin: 0; font-size: clamp(25px, 4vw, 46px); letter-spacing: .08em; }
+    .sub { color: var(--muted); font-size: 14px; margin-top: 6px; }
+    .wrap {
+      width: min(1240px, 96vw);
+      margin: 0 auto 28px;
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) 360px;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 940px) { .wrap { grid-template-columns: 1fr; } }
+    .videoBox, .panel {
+      background: rgba(18, 24, 33, .94);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 22px 70px rgba(0,0,0,.4);
+    }
+    .stage { position: relative; aspect-ratio: 16 / 9; background: #000; }
+    video { display: none; }
+    canvas#view { width: 100%; height: 100%; display: block; background: #000; cursor: crosshair; }
+    .hud {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .speed {
+      font-size: clamp(48px, 10vw, 102px);
+      line-height: .92;
+      font-weight: 950;
+      letter-spacing: -.07em;
+      color: var(--muted);
+    }
+    .speed span { font-size: .32em; color: var(--muted); letter-spacing: 0; margin-left: 8px; }
+    .status { max-width: 330px; text-align: right; color: var(--muted); font-size: 13px; line-height: 1.35; }
+    .panel { padding: 15px; }
+    .panel h2 { margin: 0 0 12px; font-size: 18px; }
+    button, input, select {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.13);
+      background: #0b1017;
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+    }
+    button {
+      cursor: pointer;
+      border: 0;
+      background: linear-gradient(180deg, #3b9cff, #1267d8);
+      font-weight: 800;
+      margin-top: 9px;
+    }
+    button.secondary { background: #202937; }
+    button.danger { background: #3a1718; color: #ffc9c9; }
+    label { display: block; color: var(--muted); font-size: 13px; margin: 12px 0 6px; }
+    input[type="range"] { padding: 0; accent-color: var(--accent); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cards { display: grid; gap: 8px; margin-top: 13px; }
+    .pill {
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      min-height: 34px;
+      padding: 7px 11px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .pill strong { color: var(--text); }
+    .mini {
+      margin-top: 12px;
+      padding: 11px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .capture { display: none; margin-top: 12px; }
+    .capture img { width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); }
+    .capture a { display: block; text-align: center; color: #a8d1ff; text-decoration: none; margin-top: 8px; }
+  </style>
 </head>
 <body>
+  <header>
+    <h1>RADAR VIDEO REALIST</h1>
+    <div class="sub">chenar pe vehicul: verde în limită, roșu la depășire</div>
+  </header>
 
-    <div id="toast"></div>
+  <main class="wrap">
+    <section class="videoBox">
+      <div class="stage">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="view" width="1280" height="720"></canvas>
+      </div>
+      <div class="hud">
+        <div id="speedBox" class="speed">--<span>km/h</span></div>
+        <div id="status" class="status">Pornește camera, setează distanța reală dintre linii și armează radarul.</div>
+      </div>
+    </section>
 
-    <div id="lobby-screen">
-        <div class="lobby-card glass">
-            <h1>P2P Nexus</h1>
-            <input type="text" id="username" placeholder="Enter your display name" maxlength="20">
-            
-            <button class="btn btn-primary" onclick="app.hostRoom()">
-                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-                Host a New Room
-            </button>
-            
-            <div class="divider">OR</div>
-            
-            <input type="text" id="room-code" placeholder="Enter 5-letter Room Code" maxlength="5" style="text-transform: uppercase;">
-            <button class="btn btn-secondary" onclick="app.joinRoom()">
-                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-                Join Existing Room
-            </button>
+    <aside class="panel">
+      <h2>Setări radar</h2>
+      <button id="startBtn">Pornește camera</button>
+      <button id="armBtn" class="secondary">Armează radarul</button>
+      <button id="resetBtn" class="danger">Reset</button>
+
+      <div class="row">
+        <div>
+          <label for="distance">Distanța reală între linii, metri</label>
+          <input id="distance" type="number" min="1" max="2000" step="0.1" value="50" />
         </div>
-    </div>
-
-    <div id="chat-screen">
-        <div class="header glass">
-            <div class="header-info">
-                <h2>Room: <span id="display-room-code" style="color: var(--primary);">---</span></h2>
-                <p id="participant-count">1 participant</p>
-            </div>
-            <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.8rem;" onclick="location.reload()">Leave</button>
+        <div>
+          <label for="limit">Limită legală, km/h</label>
+          <input id="limit" type="number" min="1" max="300" step="1" value="50" />
         </div>
+      </div>
 
-        <div class="messages-container" id="messages">
-            </div>
-
-        <div id="typing-indicator">Someone is typing...</div>
-
-        <div class="input-area glass">
-            <button class="icon-btn mic" id="btn-mic" onclick="app.toggleAudio()" title="Toggle Walkie-Talkie">
-                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-            </button>
-            
-            <button class="icon-btn flame" id="btn-paranoid" onclick="app.toggleParanoid()" title="Paranoid Mode (10s Auto-destruct)">
-                <svg viewBox="0 0 24 24"><path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13.08 3.23 12.24 3.75 11.46 4.32C8.87 6.22 7.71 9.89 8.73 13.05C8.83 13.36 8.71 13.72 8.43 13.88C8.16 14.04 7.82 14.01 7.58 13.8C6.67 13 6.09 11.85 5.86 10.6C5.07 11.96 4.8 13.68 5.25 15.22C5.95 17.63 7.85 19.64 10.28 20.48C13.06 21.43 16.32 20.84 18.27 18.57C19.86 16.73 20.08 13.85 18.72 11.83C18.42 11.58 18.06 11.41 17.66 11.2Z"/></svg>
-            </button>
-
-            <textarea id="msg-input" placeholder="Message..." rows="1"></textarea>
-            
-            <button class="icon-btn send-btn" onclick="app.sendMessage()">
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
+      <div class="row">
+        <div>
+          <label for="targetDistance">Distanță cameră-țintă, m</label>
+          <input id="targetDistance" type="number" min="1" max="2000" step="1" value="100" />
         </div>
-    </div>
+        <div>
+          <label for="minArea">Mărime minimă țintă</label>
+          <input id="minArea" type="number" min="20" max="5000" step="10" value="130" />
+        </div>
+      </div>
 
-    <div id="audio-container" style="display: none;"></div>
+      <label for="direction">Direcția vehiculului</label>
+      <select id="direction">
+        <option value="down">De sus în jos</option>
+        <option value="up">De jos în sus</option>
+      </select>
 
-    <script>
-        /**
-         * P2P Chat Application Core Logic
-         * Uses WebRTC via PeerJS. Mesh Topology for robust Client-Side P2P.
-         */
-        const APP_PREFIX = 'p2pnexus-'; // Namespace to avoid PeerJS public server collisions
-        
-        const app = {
-            peer: null,
-            myId: null,
-            username: 'Anonymous',
-            roomCode: '',
-            isHost: false,
-            
-            connections: new Map(), // peerId => DataConnection
-            calls: new Map(),       // peerId => MediaConnection
-            
-            isParanoid: false,
-            isAudioActive: false,
-            localStream: null,
-            
-            typingUsers: new Set(),
-            typingTimeout: null,
+      <label for="lineA">Linia 1 / start</label>
+      <input id="lineA" type="range" min="5" max="95" value="38" />
 
-            // === 1. Initialization & Room Management ===
+      <label for="lineB">Linia 2 / stop</label>
+      <input id="lineB" type="range" min="5" max="95" value="68" />
 
-            init() {
-                this.bindUIEvents();
-            },
+      <label for="sensitivity">Sensibilitate mișcare</label>
+      <input id="sensitivity" type="range" min="8" max="90" value="32" />
 
-            bindUIEvents() {
-                const msgInput = document.getElementById('msg-input');
-                // Auto-grow textarea
-                msgInput.addEventListener('input', function() {
-                    this.style.height = '44px';
-                    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-                    app.handleTyping();
-                });
-                // Send on Enter (Shift+Enter for newline)
-                msgInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        app.sendMessage();
-                    }
-                });
-            },
+      <div class="cards">
+        <div class="pill"><span>Ultima viteză</span><strong id="lastSpeed">-- km/h</strong></div>
+        <div class="pill"><span>Timp între linii</span><strong id="lastTime">-- s</strong></div>
+        <div class="pill"><span>Stare</span><strong id="stateText">nearmat</strong></div>
+        <div class="pill"><span>Țintă detectată</span><strong id="targetText">nu</strong></div>
+      </div>
 
-            generateRoomCode() {
-                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                let code = '';
-                for(let i=0; i<5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-                return code;
-            },
+      <div class="mini">
+        Pentru folosire serioasă: camera trebuie fixată rigid, drumul trebuie să fie vizibil clar, iar distanța dintre linii trebuie măsurată real pe asfalt. Setarea merge până la 2000 m, dar la distanțe mari ai nevoie de zoom optic și rezoluție mare; cu webcam/telefon nu va fi precis.
+      </div>
 
-            setupPeer(id) {
-                return new Promise((resolve, reject) => {
-                    this.peer = new Peer(id);
-                    this.peer.on('open', (peerId) => resolve(peerId));
-                    this.peer.on('error', (err) => {
-                        this.showError(`Connection Error: ${err.type}`);
-                        reject(err);
-                    });
-                    
-                    // Handle incoming data connections (Mesh)
-                    this.peer.on('connection', (conn) => this.handleNewConnection(conn));
-                    
-                    // Handle incoming audio calls
-                    this.peer.on('call', (call) => this.handleIncomingCall(call));
-                });
-            },
+      <div id="captureBox" class="capture">
+        <img id="captureImg" alt="Captură radar" />
+        <a id="downloadShot" href="#" download="radar-video-captura.png">Descarcă dovada</a>
+      </div>
+    </aside>
+  </main>
 
-            async hostRoom() {
-                this.username = document.getElementById('username').value.trim() || 'Host';
-                this.roomCode = this.generateRoomCode();
-                this.isHost = true;
-                
-                try {
-                    await this.setupPeer(APP_PREFIX + this.roomCode);
-                    this.transitionToChat();
-                    this.addSystemMessage(`Room created. Share code: ${this.roomCode}`);
-                } catch (e) { console.error(e); }
-            },
+  <canvas id="work" width="480" height="270" style="display:none"></canvas>
 
-            async joinRoom() {
-                this.username = document.getElementById('username').value.trim() || 'Guest_' + Math.floor(Math.random()*100);
-                const code = document.getElementById('room-code').value.trim().toUpperCase();
-                
-                if(code.length !== 5) return this.showError("Please enter a valid 5-letter code.");
-                this.roomCode = code;
+  <script>
+    const video = document.getElementById('video');
+    const view = document.getElementById('view');
+    const ctx = view.getContext('2d', { willReadFrequently: true });
+    const work = document.getElementById('work');
+    const wctx = work.getContext('2d', { willReadFrequently: true });
 
-                try {
-                    // Guests get random IDs
-                    await this.setupPeer(); 
-                    
-                    // Connect to Host
-                    const hostId = APP_PREFIX + this.roomCode;
-                    const conn = this.peer.connect(hostId, { metadata: { username: this.username } });
-                    
-                    conn.on('open', () => {
-                        this.handleNewConnection(conn);
-                        this.transitionToChat();
-                        this.addSystemMessage(`Connected to Room ${this.roomCode}`);
-                    });
-                } catch (e) { console.error(e); }
-            },
+    const startBtn = document.getElementById('startBtn');
+    const armBtn = document.getElementById('armBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const distanceInput = document.getElementById('distance');
+    const targetDistanceInput = document.getElementById('targetDistance');
+    const limitInput = document.getElementById('limit');
+    const directionInput = document.getElementById('direction');
+    const lineAInput = document.getElementById('lineA');
+    const lineBInput = document.getElementById('lineB');
+    const sensitivityInput = document.getElementById('sensitivity');
+    const minAreaInput = document.getElementById('minArea');
+    const speedBox = document.getElementById('speedBox');
+    const statusEl = document.getElementById('status');
+    const lastSpeedEl = document.getElementById('lastSpeed');
+    const lastTimeEl = document.getElementById('lastTime');
+    const stateText = document.getElementById('stateText');
+    const targetText = document.getElementById('targetText');
+    const captureBox = document.getElementById('captureBox');
+    const captureImg = document.getElementById('captureImg');
+    const downloadShot = document.getElementById('downloadShot');
 
-            // === 2. P2P Mesh Networking ===
+    let running = false;
+    let armed = false;
+    let prevFrame = null;
+    let blob = null;
+    let lastCenterY = null;
+    let stage = 'idle';
+    let tStart = 0;
+    let cooldownUntil = 0;
+    let dragging = null;
+    let lastResult = null;
+    let resultUntil = 0;
 
-            handleNewConnection(conn) {
-                conn.on('open', () => {
-                    // Store connection
-                    this.connections.set(conn.peer, conn);
-                    this.updateParticipantCount();
+    function setStatus(text) { statusEl.textContent = text; }
+    function pctLine(input) { return view.height * (Number(input.value) / 100); }
+    function lineInfo() { return { yA: pctLine(lineAInput), yB: pctLine(lineBInput), dir: directionInput.value }; }
 
-                    // If Host, send existing peer list to the new joiner so they can connect to others (Mesh)
-                    if (this.isHost) {
-                        const existingPeers = Array.from(this.connections.keys()).filter(id => id !== conn.peer);
-                        conn.send({ type: 'PEER_LIST', peers: existingPeers });
-                        this.broadcast({ type: 'SYSTEM', msg: `${conn.metadata.username} joined the room.` });
-                    }
-                });
+    function resetAll() {
+      armed = false; prevFrame = null; blob = null; lastCenterY = null; stage = 'idle';
+      tStart = 0; cooldownUntil = 0; lastResult = null; resultUntil = 0;
+      speedBox.innerHTML = '--<span>km/h</span>'; speedBox.style.color = 'var(--muted)';
+      lastSpeedEl.textContent = '-- km/h'; lastTimeEl.textContent = '-- s'; stateText.textContent = 'nearmat'; targetText.textContent = 'nu';
+      armBtn.textContent = 'Armează radarul'; armBtn.classList.add('secondary');
+      setStatus('Reset complet. Poți arma radarul din nou.');
+    }
 
-                conn.on('data', (data) => this.handleIncomingData(data, conn));
-                
-                conn.on('close', () => {
-                    this.connections.delete(conn.peer);
-                    this.updateParticipantCount();
-                    if(conn.metadata && conn.metadata.username) {
-                        this.addSystemMessage(`${conn.metadata.username} disconnected.`);
-                    }
-                });
-            },
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: 30, max: 60 }
+          },
+          audio: false
+        });
+        video.srcObject = stream;
+        await video.play();
+        running = true;
+        setStatus('Camera pornită. Așază liniile pe drum și armează radarul.');
+        loop();
+      } catch (err) {
+        setStatus('Nu pot porni camera. Deschide pagina din localhost sau HTTPS. Eroare: ' + err.message);
+      }
+    }
 
-            handleIncomingData(data, conn) {
-                switch(data.type) {
-                    case 'PEER_LIST':
-                        // Guest receives list of other peers from Host and connects to them
-                        data.peers.forEach(peerId => {
-                            if (!this.connections.has(peerId) && peerId !== this.peer.id) {
-                                const newConn = this.peer.connect(peerId, { metadata: { username: this.username } });
-                                this.handleNewConnection(newConn);
-                            }
-                        });
-                        break;
-                    case 'TEXT':
-                        this.appendMessage(data.username, data.text, false, data.paranoid);
-                        break;
-                    case 'SYSTEM':
-                        this.addSystemMessage(data.msg);
-                        break;
-                    case 'TYPING':
-                        if (data.isTyping) this.typingUsers.add(data.username);
-                        else this.typingUsers.delete(data.username);
-                        this.updateTypingIndicator();
-                        break;
-                }
-            },
+    function armRadar() {
+      if (!running) { setStatus('Pornește mai întâi camera.'); return; }
+      const meters = Number(distanceInput.value);
+      if (!meters || meters < 1 || meters > 2000) { setStatus('Distanța dintre linii trebuie să fie între 1 și 2000 metri.'); return; }
+      const { yA, yB, dir } = lineInfo();
+      if (Math.abs(yA - yB) < 40) { setStatus('Pune liniile mai depărtate pe imagine pentru măsurare mai stabilă.'); return; }
+      if (dir === 'down' && yA >= yB) { setStatus('Pentru sus → jos, linia 1 trebuie să fie deasupra liniei 2.'); return; }
+      if (dir === 'up' && yA <= yB) { setStatus('Pentru jos → sus, linia 1 trebuie să fie sub linia 2.'); return; }
+      armed = !armed;
+      if (armed) {
+        stage = 'waitA'; lastCenterY = null; prevFrame = null; tStart = 0; cooldownUntil = performance.now() + 800;
+        armBtn.textContent = 'Oprește radarul'; armBtn.classList.remove('secondary'); stateText.textContent = 'armat';
+        setStatus('Radar armat. Aștept vehiculul să treacă de linia 1.');
+      } else {
+        stage = 'idle'; armBtn.textContent = 'Armează radarul'; armBtn.classList.add('secondary'); stateText.textContent = 'nearmat';
+        setStatus('Radar oprit.');
+      }
+    }
 
-            broadcast(data) {
-                this.connections.forEach(conn => {
-                    if (conn.open) conn.send(data);
-                });
-            },
+    function detectMotion() {
+      if (video.readyState < 2) return null;
+      wctx.drawImage(video, 0, 0, work.width, work.height);
+      const frame = wctx.getImageData(0, 0, work.width, work.height);
+      const data = frame.data;
+      if (!prevFrame) { prevFrame = new Uint8ClampedArray(data); return null; }
 
-            // === 3. Messaging Logic ===
+      const threshold = Number(sensitivityInput.value);
+      const minPixels = Number(minAreaInput.value);
+      let minX = work.width, minY = work.height, maxX = 0, maxY = 0, sumX = 0, sumY = 0, count = 0;
 
-            sendMessage() {
-                const input = document.getElementById('msg-input');
-                const text = input.value.trim();
-                if (!text) return;
+      for (let y = 0; y < work.height; y += 2) {
+        for (let x = 0; x < work.width; x += 2) {
+          const i = (y * work.width + x) * 4;
+          const gray = (data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114);
+          const old = (prevFrame[i] * 0.299 + prevFrame[i+1] * 0.587 + prevFrame[i+2] * 0.114);
+          const diff = Math.abs(gray - old);
+          if (diff > threshold) {
+            minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+            sumX += x; sumY += y; count++;
+          }
+        }
+      }
+      prevFrame = new Uint8ClampedArray(data);
+      if (count < minPixels) return null;
 
-                // Send to peers
-                this.broadcast({
-                    type: 'TEXT',
-                    text: text,
-                    username: this.username,
-                    paranoid: this.isParanoid
-                });
+      const sx = view.width / work.width, sy = view.height / work.height;
+      return {
+        x: minX * sx, y: minY * sy,
+        w: Math.max(22, (maxX - minX) * sx), h: Math.max(22, (maxY - minY) * sy),
+        cx: (sumX / count) * sx, cy: (sumY / count) * sy,
+        pixels: count
+      };
+    }
 
-                // Show locally
-                this.appendMessage('You', text, true, this.isParanoid);
-                
-                // Reset input
-                input.value = '';
-                input.style.height = '44px';
-                this.broadcast({ type: 'TYPING', isTyping: false, username: this.username });
-            },
+    function crossed(last, now, line, dir) {
+      if (last === null || Number.isNaN(last)) return false;
+      return dir === 'down' ? last < line && now >= line : last > line && now <= line;
+    }
 
-            handleTyping() {
-                this.broadcast({ type: 'TYPING', isTyping: true, username: this.username });
-                clearTimeout(this.typingTimeout);
-                this.typingTimeout = setTimeout(() => {
-                    this.broadcast({ type: 'TYPING', isTyping: false, username: this.username });
-                }, 2000);
-            },
+    function processRadar(now) {
+      targetText.textContent = blob ? 'da' : 'nu';
+      if (!armed || !blob || now < cooldownUntil) return;
+      const { yA, yB, dir } = lineInfo();
+      const pos = blob.cy;
+      if (stage === 'waitA') {
+        if (crossed(lastCenterY, pos, yA, dir)) {
+          tStart = now; stage = 'waitB'; stateText.textContent = 'măsurare';
+          setStatus('Țintă detectată la linia 1. Cronometrez până la linia 2.');
+        }
+      } else if (stage === 'waitB') {
+        if (crossed(lastCenterY, pos, yB, dir)) {
+          const seconds = (now - tStart) / 1000;
+          if (seconds > 0.05 && seconds < 180) {
+            const kmh = (Number(distanceInput.value) / seconds) * 3.6;
+            showResult(kmh, seconds, now);
+          }
+          stage = 'waitA'; stateText.textContent = 'armat'; tStart = 0; cooldownUntil = now + 2000; lastCenterY = null;
+          setStatus('Măsurare terminată. Aștept următorul vehicul.');
+        }
+      }
+      lastCenterY = pos;
+    }
 
-            updateTypingIndicator() {
-                const ind = document.getElementById('typing-indicator');
-                if (this.typingUsers.size === 0) {
-                    ind.style.opacity = '0';
-                } else {
-                    const names = Array.from(this.typingUsers).join(', ');
-                    ind.innerText = `${names} ${this.typingUsers.size > 1 ? 'are' : 'is'} typing...`;
-                    ind.style.opacity = '1';
-                }
-            },
+    function showResult(kmh, seconds, now) {
+      const limit = Number(limitInput.value || 0);
+      const over = limit > 0 && kmh > limit;
+      lastResult = { kmh, over, blob: blob ? { ...blob } : null, at: new Date(), targetDistance: Number(targetDistanceInput.value || 0) };
+      resultUntil = now + 5000;
+      speedBox.innerHTML = Math.round(kmh) + '<span>km/h</span>';
+      speedBox.style.color = over ? 'var(--bad)' : 'var(--good)';
+      lastSpeedEl.textContent = kmh.toFixed(1) + ' km/h';
+      lastTimeEl.textContent = seconds.toFixed(2) + ' s';
+      if (over) makeCapture(kmh, limit);
+    }
 
-            appendMessage(sender, text, isSentByMe, isParanoid) {
-                const container = document.getElementById('messages');
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `message ${isSentByMe ? 'msg-sent' : 'msg-recv'} ${isParanoid ? 'paranoid-msg' : ''}`;
-                
-                msgDiv.innerHTML = `
-                    <span class="sender">${sender}</span>
-                    <p>${this.escapeHTML(text)}</p>
-                `;
-                
-                container.appendChild(msgDiv);
-                container.scrollTop = container.scrollHeight;
+    function boxColor(now) {
+      if (lastResult && now < resultUntil) return lastResult.over ? '#ff2d2d' : '#20d36b';
+      if (stage === 'waitB') return '#ffd23c';
+      return '#20d36b';
+    }
 
-                if (isParanoid) {
-                    setTimeout(() => {
-                        if(msgDiv.parentNode) {
-                            msgDiv.style.animation = 'fadeOut 0.3s ease forwards';
-                            setTimeout(() => msgDiv.remove(), 300);
-                        }
-                    }, 10000); // 10 seconds auto-destruct
-                }
-            },
+    function drawLine(y, color, label) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.setLineDash([22, 12]);
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(view.width, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = color; ctx.fillRect(18, y - 36, 218, 30);
+      ctx.fillStyle = '#041018'; ctx.font = 'bold 17px system-ui'; ctx.fillText(label, 30, y - 15);
+      ctx.restore();
+    }
 
-            addSystemMessage(text) {
-                const container = document.getElementById('messages');
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'message msg-system';
-                msgDiv.innerText = text;
-                container.appendChild(msgDiv);
-                container.scrollTop = container.scrollHeight;
-            },
+    function drawBox(b, color, now) {
+      ctx.save();
+      ctx.lineWidth = 6; ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 12;
+      ctx.strokeRect(b.x, b.y, b.w, b.h);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = color; ctx.fillRect(b.x, Math.max(0, b.y - 34), Math.min(300, b.w + 120), 30);
+      ctx.fillStyle = '#041018'; ctx.font = 'bold 18px system-ui';
+      let label = 'ÎN LIMITĂ';
+      if (stage === 'waitB' && !(lastResult && now < resultUntil)) label = 'MĂSURARE';
+      if (lastResult && now < resultUntil) label = lastResult.over ? 'DEPĂȘIRE: ' + Math.round(lastResult.kmh) + ' km/h' : 'LEGAL: ' + Math.round(lastResult.kmh) + ' km/h';
+      ctx.fillText(label, b.x + 10, Math.max(22, b.y - 12));
+      ctx.restore();
+    }
 
-            // === 4. Voice / Walkie-Talkie (WebRTC Audio) ===
+    function drawScene(now = performance.now()) {
+      ctx.clearRect(0, 0, view.width, view.height);
+      if (video.readyState >= 2) ctx.drawImage(video, 0, 0, view.width, view.height);
+      else {
+        ctx.fillStyle = '#030508'; ctx.fillRect(0,0,view.width,view.height);
+        ctx.fillStyle = '#7f8b99'; ctx.font = '30px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText('Camera nu este pornită', view.width/2, view.height/2);
+        ctx.textAlign = 'left';
+      }
+      const { yA, yB, dir } = lineInfo();
+      drawLine(yA, '#20d36b', 'LINIA 1 / START'); drawLine(yB, '#ffd23c', 'LINIA 2 / STOP');
 
-            async toggleAudio() {
-                const btn = document.getElementById('btn-mic');
-                this.isAudioActive = !this.isAudioActive;
+      const b = blob || (lastResult && now < resultUntil ? lastResult.blob : null);
+      if (b) drawBox(b, boxColor(now), now);
 
-                if (this.isAudioActive) {
-                    try {
-                        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                        btn.classList.add('active');
-                        this.addSystemMessage('Walkie-Talkie activated.');
-                        
-                        // Call all connected peers
-                        this.connections.forEach((conn, peerId) => {
-                            const call = this.peer.call(peerId, this.localStream);
-                            this.handleOutgoingCall(call, peerId);
-                        });
-                    } catch (err) {
-                        this.showError("Microphone access denied.");
-                        this.isAudioActive = false;
-                        btn.classList.remove('active');
-                    }
-                } else {
-                    // Turn off audio
-                    if (this.localStream) {
-                        this.localStream.getTracks().forEach(track => track.stop());
-                        this.localStream = null;
-                    }
-                    this.calls.forEach(call => call.close());
-                    this.calls.clear();
-                    btn.classList.remove('active');
-                    this.addSystemMessage('Walkie-Talkie disabled.');
-                }
-            },
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,.62)'; ctx.fillRect(16, 16, 420, 124);
+      ctx.fillStyle = '#f3f7fb'; ctx.font = 'bold 26px system-ui'; ctx.textAlign = 'left';
+      ctx.fillText('Limită: ' + Number(limitInput.value || 0) + ' km/h', 34, 54);
+      ctx.fillStyle = '#a8b4c2'; ctx.font = '18px system-ui';
+      ctx.fillText('Distanță linii: ' + Number(distanceInput.value || 0) + ' m', 34, 86);
+      ctx.fillText('Direcție: ' + (dir === 'down' ? 'sus → jos' : 'jos → sus'), 34, 116);
+      ctx.restore();
+    }
 
-            handleOutgoingCall(call, peerId) {
-                this.calls.set(peerId, call);
-                call.on('stream', remoteStream => this.playRemoteAudio(remoteStream, peerId));
-                call.on('close', () => this.removeRemoteAudio(peerId));
-            },
+    function makeCapture(kmh, limit) {
+      drawScene(performance.now());
+      const stamp = new Date().toLocaleString('ro-RO');
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,45,45,.88)'; ctx.fillRect(0, view.height - 96, view.width, 96);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 40px system-ui'; ctx.textAlign = 'left';
+      ctx.fillText('DEPĂȘIRE LIMITĂ: ' + kmh.toFixed(1) + ' km/h / limită ' + limit + ' km/h', 28, view.height - 44);
+      ctx.font = '20px system-ui';
+      ctx.fillText('Distanță linii: ' + Number(distanceInput.value) + ' m | Distanță estimată cameră-țintă: ' + Number(targetDistanceInput.value) + ' m', 28, view.height - 16);
+      ctx.textAlign = 'right'; ctx.fillText(stamp, view.width - 28, view.height - 16);
+      ctx.restore();
+      const url = view.toDataURL('image/png');
+      captureImg.src = url; downloadShot.href = url; captureBox.style.display = 'block';
+    }
 
-            handleIncomingCall(call) {
-                if (this.isAudioActive && this.localStream) {
-                    call.answer(this.localStream);
-                } else {
-                    call.answer(); // Answer without stream to receive only
-                }
-                
-                this.calls.set(call.peer, call);
-                call.on('stream', remoteStream => this.playRemoteAudio(remoteStream, call.peer));
-                call.on('close', () => this.removeRemoteAudio(call.peer));
-            },
+    function loop() {
+      if (!running) return;
+      blob = detectMotion();
+      const now = performance.now();
+      processRadar(now);
+      drawScene(now);
+      requestAnimationFrame(loop);
+    }
 
-            playRemoteAudio(stream, peerId) {
-                const container = document.getElementById('audio-container');
-                let audioObj = document.getElementById('audio-' + peerId);
-                
-                if (!audioObj) {
-                    audioObj = document.createElement('audio');
-                    audioObj.id = 'audio-' + peerId;
-                    audioObj.autoplay = true;
-                    container.appendChild(audioObj);
-                }
-                audioObj.srcObject = stream;
-            },
+    function canvasPos(evt) {
+      const r = view.getBoundingClientRect();
+      return { x: (evt.clientX - r.left) * (view.width / r.width), y: (evt.clientY - r.top) * (view.height / r.height) };
+    }
+    view.addEventListener('pointerdown', e => {
+      const p = canvasPos(e), yA = pctLine(lineAInput), yB = pctLine(lineBInput);
+      dragging = Math.abs(p.y - yA) < Math.abs(p.y - yB) ? 'A' : 'B';
+    });
+    view.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const p = canvasPos(e); const v = Math.max(5, Math.min(95, Math.round((p.y / view.height) * 100)));
+      if (dragging === 'A') lineAInput.value = v; else lineBInput.value = v;
+      drawScene();
+    });
+    window.addEventListener('pointerup', () => dragging = null);
 
-            removeRemoteAudio(peerId) {
-                const audioObj = document.getElementById('audio-' + peerId);
-                if (audioObj) audioObj.remove();
-                this.calls.delete(peerId);
-            },
-
-            // === 5. Utility Functions ===
-
-            toggleParanoid() {
-                this.isParanoid = !this.isParanoid;
-                const btn = document.getElementById('btn-paranoid');
-                if(this.isParanoid) {
-                    btn.classList.add('active');
-                    this.showError("Paranoid Mode ON: Messages destruct in 10s");
-                } else {
-                    btn.classList.remove('active');
-                }
-            },
-
-            transitionToChat() {
-                document.getElementById('lobby-screen').style.display = 'none';
-                document.getElementById('chat-screen').style.display = 'flex';
-                document.getElementById('display-room-code').innerText = this.roomCode;
-            },
-
-            updateParticipantCount() {
-                const count = this.connections.size + 1; // +1 for self
-                document.getElementById('participant-count').innerText = `${count} participant${count > 1 ? 's' : ''}`;
-            },
-
-            showError(msg) {
-                const toast = document.getElementById('toast');
-                toast.innerText = msg;
-                toast.style.display = 'block';
-                setTimeout(() => toast.style.display = 'none', 3000);
-            },
-
-            escapeHTML(str) {
-                return str.replace(/[&<>'"]/g, 
-                    tag => ({
-                        '&': '&amp;',
-                        '<': '&lt;',
-                        '>': '&gt;',
-                        "'": '&#39;',
-                        '"': '&quot;'
-                    }[tag] || tag)
-                );
-            }
-        };
-
-        // Initialize application logic
-        window.addEventListener('DOMContentLoaded', () => app.init());
-
-    </script>
+    [distanceInput, targetDistanceInput, limitInput, directionInput, lineAInput, lineBInput, sensitivityInput, minAreaInput].forEach(el => el.addEventListener('input', () => drawScene()));
+    startBtn.addEventListener('click', startCamera);
+    armBtn.addEventListener('click', armRadar);
+    resetBtn.addEventListener('click', resetAll);
+    drawScene();
+  </script>
 </body>
 </html>
